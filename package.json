@@ -4,19 +4,49 @@
   "description": "A modern Git GUI for Linux",
   "author": "SaraPPC",
   "main": "electron/main.cjs",
+  "desktopName": "NextGit",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "start": "npm run build && electron .",
     "electron": "electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:appimage": "npm run build && electron-builder --linux AppImage",
+    "dist:deb": "npm run build && electron-builder --linux deb",
     "test": "npx tsc --noEmit && npx tsx scripts/smoke.ts && node scripts/ui-test.mjs && node scripts/flow-test.mjs && node scripts/feature-test.mjs && node scripts/clone-test.mjs && node scripts/identity-test.mjs"
   },
   "license": "MIT",
+  "build": {
+    "appId": "org.sarappc.nextgit",
+    "productName": "NextGit",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "dist/**",
+      "assets/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "build/icon.png",
+      "category": "Development",
+      "maintainer": "SaraPPC <saraabaldzhieva@gmail.com>",
+      "syncDesktopName": true
+    }
+  },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   },

@@ -27,6 +27,7 @@ export type IconName =
   | 'bell'
   | 'star'
   | 'download'
+  | 'palette'
 
 const paths: Record<IconName, React.ReactNode> = {
   repo: (
@@ -166,6 +167,15 @@ const paths: Record<IconName, React.ReactNode> = {
     <path d="M8 1.5l1.9 3.85 4.25.62-3.08 3 .73 4.24L8 11.1l-3.8 2.11.73-4.24-3.08-3 4.25-.62L8 1.5Z" />
   ),
   download: <path d="M8 1.5v9M4.5 7.5L8 11l3.5-3.5M2 14.5h12" />,
+  palette: (
+    <>
+      <path d="M8 1.75a6.25 6.25 0 1 0 0 12.5c.9 0 1.4-.7 1.4-1.4 0-.4-.15-.7-.4-.95-.25-.25-.4-.6-.4-.95a1.45 1.45 0 0 1 1.45-1.45h1.9c2 0 3.4-1.35 3.4-3.15C15.75 3.7 12.2 1.75 8 1.75Z" />
+      <circle cx="4.5" cy="7" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="7" cy="4.5" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="10.5" cy="4.75" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="4.25" cy="10.25" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
 }
 
 export function Icon({

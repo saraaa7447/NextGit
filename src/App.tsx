@@ -36,6 +36,7 @@ import {
   unstageFiles,
 } from './gitService'
 import type { DiffFile } from './diffParser'
+import { DEFAULT_THEME, FLAT_KEY, THEME_KEY, THEMES, themeName } from './themes'
 
 const REPOS_KEY = 'gd.repos'
 const ACTIVE_KEY = 'gd.active'
@@ -125,6 +126,11 @@ export default function App() {
 
   const [summary, setSummary] = useState('')
   const [description, setDescription] = useState('')
+  const [theme, setTheme] = useState<string>(() => {
+    const stored = localStorage.getItem(THEME_KEY)
+    return THEMES.some((t) => t.id === stored) ? (stored as string) : DEFAULT_THEME
+  })
+  const [flat, setFlat] = useState(() => localStorage.getItem(FLAT_KEY) === '1')
 
   const seq = useRef(0)
   const changesRef = useRef<FileChange[]>([])
@@ -139,6 +145,32 @@ export default function App() {
     setToast({ msg, type })
     window.setTimeout(() => setToast((t) => (t && t.msg === msg ? null : t)), 3500)
   }, [])
+
+  const applyTheme = useCallback(
+    (t: string) => {
+      setTheme(t)
+      document.documentElement.dataset.theme = t
+      localStorage.setItem(THEME_KEY, t)
+      showToast(`Theme: ${themeName(t)}`)
+    },
+    [showToast],
+  )
+
+  const applyFlat = useCallback(
+    (value: boolean) => {
+      setFlat(value)
+      if (value) {
+        document.documentElement.dataset.flat = '1'
+        localStorage.setItem(FLAT_KEY, '1')
+        showToast('Flat colours on')
+      } else {
+        delete document.documentElement.dataset.flat
+        localStorage.setItem(FLAT_KEY, '0')
+        showToast('Flat colours off')
+      }
+    },
+    [showToast],
+  )
 
   // ---------------------------------------------------------------- loading
   const loadMeta = useCallback(async (repo: Repo, id?: number) => {
@@ -697,6 +729,10 @@ export default function App() {
         onCreateBranch={newBranch}
         onFetch={doFetch}
         onSync={doSync}
+        theme={theme}
+        onThemeChange={applyTheme}
+        flat={flat}
+        onFlatChange={applyFlat}
       />
 
       <div className="tabbar">

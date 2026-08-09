@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Icon } from './Icons'
 import { Dropdown } from './Dropdown'
+import { ThemePicker } from './ThemePicker'
 import type { BranchInfo, Repo } from '../types'
 
 interface ToolbarProps {
@@ -10,6 +11,10 @@ interface ToolbarProps {
   branches: string[]
   hasRemote: boolean
   busy: string | null
+  theme: string
+  onThemeChange: (t: string) => void
+  flat: boolean
+  onFlatChange: (v: boolean) => void
   onSelectRepo: (r: Repo) => void
   onRemoveRepo: (r: Repo) => void
   onAddRepo: () => void
@@ -195,6 +200,7 @@ export function Toolbar(props: ToolbarProps) {
             {syncBusy ? 'Syncing' : syncLabel}
           </button>
         )}
+        <ThemePicker theme={props.theme} onSelect={props.onThemeChange} flat={props.flat} onFlatChange={props.onFlatChange} />
       </div>
     </header>
   )

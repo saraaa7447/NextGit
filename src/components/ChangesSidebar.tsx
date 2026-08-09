@@ -16,7 +16,7 @@ export function ChangesSidebar({
   changes,
   filter,
   onFilterChange,
-  selectedPath,
+  selectedPaths,
   onSelect,
   onToggleStage,
   onStageAll,
@@ -44,8 +44,8 @@ export function ChangesSidebar({
   changes: FileChange[]
   filter: DiffFilter
   onFilterChange: (f: DiffFilter) => void
-  selectedPath: string | null
-  onSelect: (f: FileChange) => void
+  selectedPaths: ReadonlySet<string>
+  onSelect: (f: FileChange, multi: boolean) => void
   onToggleStage: (f: FileChange) => void
   onStageAll: () => void
   onUnstageAll: () => void
@@ -130,9 +130,9 @@ export function ChangesSidebar({
               <FileRow
                 key={f.path}
                 file={f}
-                selected={f.path === selectedPath}
+                selected={selectedPaths.has(f.path)}
                 repoPath={repoPath}
-                onSelect={() => onSelect(f)}
+                onSelect={(e) => onSelect(f, e.ctrlKey || e.metaKey)}
                 onToggleStage={() => onToggleStage(f)}
                 onDiscard={() => onDiscard(f)}
                 onReveal={() => onReveal(f)}
@@ -180,7 +180,7 @@ function FileRow({
   file: FileChange
   selected: boolean
   repoPath: string
-  onSelect: () => void
+  onSelect: (e: React.MouseEvent) => void
   onToggleStage: () => void
   onDiscard: () => void
   onReveal: () => void

@@ -28,7 +28,7 @@ import {
   getWorkingDiff,
   pullBranch,
   pushBranch,
-  stageFiles,
+  stageChanges,
   stashPop,
   stashPush,
   switchBranch,
@@ -53,8 +53,17 @@ async function autoStageTracked(
       !skip.has(c.path),
   )
   if (needs.length === 0) return st
-  await stageFiles(path, needs.map((c) => c.path))
+  await stageChanges(path, needs)
   return getRepoStatus(path)
+}
+
+function applyDiffFilter(changes: FileChange[], filter: DiffFilter): FileChange[] {
+  if (filter === 'staged') return changes.filter((c) => c.staged)
+  if (filter === 'unstaged')
+    return changes.filter(
+      (c) => c.untracked || (c.worktreeStatus !== ' ' && c.worktreeStatus !== '?'),
+    )
+  return changes
 }
 
 function isIdentityError(stderr: string): boolean {
@@ -91,6 +100,7 @@ export default function App() {
 
   const [filter, setFilter] = useState<DiffFilter>('all')
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  const [selectedPaths, setSelectedPaths] = useState<ReadonlySet<string>>(new Set())
   const [workingDiff, setWorkingDiff] = useState<DiffFile[]>([])
   const [diffLoading, setDiffLoading] = useState(false)
   const [diffNonce, setDiffNonce] = useState(0)
@@ -169,6 +179,7 @@ export default function App() {
       const id = ++seq.current
       setInitializing(true)
       setSelectedPath(null)
+      setSelectedPaths(new Set())
       setSelectedSha(null)
       setCommitDiff([])
       await Promise.all([loadMeta(repo, id), loadHistory(repo, id)])
@@ -243,6 +254,28 @@ export default function App() {
       window.removeEventListener('focus', onFocus)
     }
   }, [activeRepo, refreshStatus])
+
+  // ctrl+a selects all visible changes
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || (e.key !== 'a' && e.key !== 'A')) return
+      const t = e.target as HTMLElement | null
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable)
+      )
+        return
+      if (tab !== 'changes' || !activeRepo || changes.length === 0) return
+      e.preventDefault()
+      const visible = applyDiffFilter(changes, filter)
+      setSelectedPaths(new Set(visible.map((c) => c.path)))
+      if (visible.length > 0) setSelectedPath(visible[visible.length - 1].path)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [tab, activeRepo, changes, filter])
 
   // persistence
   useEffect(() => {
@@ -386,15 +419,34 @@ export default function App() {
     showToast(`Repository "${repo.name}" cloned`)
   }
 
+  const selectFile = (f: FileChange, multi: boolean) => {
+    setSelectedPath(f.path)
+    setSelectedPaths((prev) => {
+      const next = new Set(prev)
+      if (multi) {
+        if (next.has(f.path)) next.delete(f.path)
+        else next.add(f.path)
+        return next
+      }
+      return new Set([f.path])
+    })
+  }
+
   const toggleStage = async (f: FileChange) => {
     if (!activeRepo || busy) return
-    if (f.staged) {
-      unstagedRef.current.add(f.path)
-      const r = await unstageFiles(activeRepo.path, [f.path], hasCommits)
+    const sel =
+      selectedPaths.size > 1 && selectedPaths.has(f.path)
+        ? [...selectedPaths]
+        : [f.path]
+    const targets = changes.filter((c) => sel.includes(c.path))
+    const allStaged = targets.length > 0 && targets.every((c) => c.staged)
+    if (allStaged) {
+      sel.forEach((p) => unstagedRef.current.add(p))
+      const r = await unstageFiles(activeRepo.path, sel, hasCommits)
       if (r.code !== 0) showToast(r.stderr, 'err')
     } else {
-      unstagedRef.current.delete(f.path)
-      const r = await stageFiles(activeRepo.path, [f.path])
+      sel.forEach((p) => unstagedRef.current.delete(p))
+      const r = await stageChanges(activeRepo.path, targets)
       if (r.code !== 0) showToast(r.stderr, 'err')
     }
     await refreshStatus(activeRepo, { nonce: true })
@@ -405,7 +457,7 @@ export default function App() {
     const unstaged = changes.filter((c) => !c.staged)
     if (unstaged.length === 0) return
     unstagedRef.current.clear()
-    await stageFiles(activeRepo.path, unstaged.map((c) => c.path))
+    await stageChanges(activeRepo.path, unstaged)
     await refreshStatus(activeRepo, { nonce: true })
   }
 
@@ -706,8 +758,8 @@ export default function App() {
                   changes={changes}
                   filter={filter}
                   onFilterChange={setFilter}
-                  selectedPath={selectedPath}
-                  onSelect={(f) => setSelectedPath(f.path)}
+                  selectedPaths={selectedPaths}
+                  onSelect={selectFile}
                   onToggleStage={toggleStage}
                   onStageAll={stageAll}
                   onUnstageAll={unstageAll}

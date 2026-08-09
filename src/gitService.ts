@@ -1,4 +1,4 @@
-import type { BranchInfo, Commit, FileChange, RepoStatus } from './types'
+import type { BranchInfo, Commit, FileChange, GitResult, RepoStatus } from './types'
 import { parseDiff, type DiffFile } from './diffParser'
 
 export function git(cwd: string, args: string[]) {
@@ -201,6 +201,19 @@ export async function getWorkingDiff(
 
 export const stageFiles = (cwd: string, paths: string[]) =>
   git(cwd, ['add', '--', ...paths])
+
+export async function stageChanges(cwd: string, changes: FileChange[]) {
+  const tracked = changes.filter((c) => !c.untracked)
+  const untracked = changes.filter((c) => c.untracked)
+  const results: GitResult[] = []
+  if (tracked.length > 0) {
+    results.push(await git(cwd, ['add', '-u', '--', ...tracked.map((c) => c.path)]))
+  }
+  if (untracked.length > 0) {
+    results.push(await git(cwd, ['add', '--', ...untracked.map((c) => c.path)]))
+  }
+  return results.find((r) => r.code !== 0) || results[0] || { code: 0, stdout: '', stderr: '' }
+}
 
 export async function unstageFiles(
   cwd: string,

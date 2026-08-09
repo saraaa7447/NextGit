@@ -623,7 +623,15 @@ export default function App() {
     const st2 = await getRepoStatus(activeRepo.path)
     if (st2.branch && st2.branch.ahead > 0) {
       setBusy('push')
-      const r = await pushBranch(activeRepo.path, st2.branch.head, st2.branch.upstream)
+      let r = await pushBranch(activeRepo.path, st2.branch.head, st2.branch.upstream)
+      if (r.code !== 0 && /\[rejected\]|non-fast-forward|fetch first/i.test(r.stderr)) {
+        const pr = await pullBranch(activeRepo.path)
+        if (pr.code !== 0) {
+          setBusy(null)
+          return showToast(pr.stderr.split('\n')[0] || 'Pull failed', 'err')
+        }
+        r = await pushBranch(activeRepo.path, st2.branch.head, st2.branch.upstream)
+      }
       setBusy(null)
       if (r.code !== 0) {
         return showToast(r.stderr.split('\n')[0] || 'Push failed', 'err')

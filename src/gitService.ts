@@ -240,7 +240,11 @@ export const createBranch = (cwd: string, name: string) =>
 
 export const fetchAll = (cwd: string) => git(cwd, ['fetch'])
 
-export const pullBranch = (cwd: string) => git(cwd, ['pull'])
+export async function pullBranch(cwd: string) {
+  const r = await git(cwd, ['pull', '--rebase', '--autostash'])
+  if (r.code !== 0) await git(cwd, ['rebase', '--abort'])
+  return r
+}
 
 export function pushBranch(cwd: string, branch: string, upstream: string | null) {
   if (upstream) return git(cwd, ['push'])

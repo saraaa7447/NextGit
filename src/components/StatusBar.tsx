@@ -53,7 +53,16 @@ export function StatusBar({
             <span className="spinner" /> {busyLabel(busy)}
           </span>
         ) : activeRepo ? (
-          <span className="status-changes">{changeSummary(changes)}</span>
+          <>
+            <span className="status-changes">{changeSummary(changes)}</span>
+            <button
+              className="status-author"
+              title="Visit SaraPPC's website"
+              onClick={() => window.api.openExternal('https://sarascafe.lenowo.org')}
+            >
+              Made by SaraPPC
+            </button>
+          </>
         ) : null}
       </div>
     </footer>

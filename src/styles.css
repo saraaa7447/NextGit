@@ -209,7 +209,8 @@ input:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 9px;
+  height: 26px;
+  padding: 0 9px;
   border: 1px solid #000;
   border-radius: 0;
   background: var(--widget);
@@ -1212,6 +1213,22 @@ input:disabled {
 }
 .status-changes {
   white-space: nowrap;
+}
+.status-author {
+  font-weight: 700;
+  color: var(--blue);
+  white-space: nowrap;
+  padding: 0 0 0 12px;
+  margin: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  border-left: 1px solid var(--border-subtle);
+}
+.status-author:hover {
+  text-decoration: underline;
 }
 
 /* ---------------------------------------------------------------- spinner */

@@ -23,8 +23,8 @@ function cliPath() {
 
 function createWindow() {
   const workArea = screen.getPrimaryDisplay().workAreaSize
-  const width = Math.min(1200, workArea.width - 120)
-  const height = Math.min(800, workArea.height - 120)
+  const width = Math.min(1024, workArea.width - 120)
+  const height = Math.min(680, workArea.height - 120)
   mainWindow = new BrowserWindow({
     width,
     height,

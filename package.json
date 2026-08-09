@@ -1,0 +1,30 @@
+{
+  "name": "nextgit",
+  "version": "0.1.0",
+  "description": "A modern Git GUI for Linux",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "electron": "electron .",
+    "test": "npx tsc --noEmit && npx tsx scripts/smoke.ts && node scripts/ui-test.mjs && node scripts/flow-test.mjs && node scripts/feature-test.mjs && node scripts/clone-test.mjs && node scripts/identity-test.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "esbuild@0.21.5": true
+  }
+}

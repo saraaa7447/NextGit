@@ -1368,6 +1368,10 @@ input:disabled {
   display: block;
   margin-bottom: 12px;
 }
+.field > input,
+.field > textarea {
+  width: 100%;
+}
 .field-label {
   display: block;
   font-size: 12px;

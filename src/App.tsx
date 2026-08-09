@@ -12,7 +12,7 @@ import {
   IdentityModal,
   ScanResultsModal,
 } from './components/Modals'
-import type { BranchInfo, Commit, DiffFilter, FileChange, Repo, Tab } from './types'
+import type { BranchInfo, Commit, DiffFilter, FileChange, Repo, RepoStatus, Tab } from './types'
 import {
   createBranch,
   createCommit,
@@ -39,6 +39,23 @@ import type { DiffFile } from './diffParser'
 
 const REPOS_KEY = 'gd.repos'
 const ACTIVE_KEY = 'gd.active'
+
+async function autoStageTracked(
+  path: string,
+  st: RepoStatus,
+  skip: ReadonlySet<string>,
+): Promise<RepoStatus> {
+  const needs = st.changes.filter(
+    (c) =>
+      !c.untracked &&
+      !c.conflicted &&
+      c.worktreeStatus !== ' ' &&
+      !skip.has(c.path),
+  )
+  if (needs.length === 0) return st
+  await stageFiles(path, needs.map((c) => c.path))
+  return getRepoStatus(path)
+}
 
 function isIdentityError(stderr: string): boolean {
   const s = stderr.toLowerCase()
@@ -103,6 +120,7 @@ export default function App() {
   const changesRef = useRef<FileChange[]>([])
   const activeRef = useRef<Repo | null>(null)
   const selectedShaRef = useRef<string | null>(null)
+  const unstagedRef = useRef<Set<string>>(new Set())
   changesRef.current = changes
   activeRef.current = activeRepo
   selectedShaRef.current = selectedSha
@@ -114,13 +132,14 @@ export default function App() {
 
   // ---------------------------------------------------------------- loading
   const loadMeta = useCallback(async (repo: Repo, id?: number) => {
-    const [st, brs, rems, ident, stash] = await Promise.all([
+    const [st0, brs, rems, ident, stash] = await Promise.all([
       getRepoStatus(repo.path),
       getBranches(repo.path),
       getRemotes(repo.path),
       getIdentity(repo.path),
       getStashList(repo.path),
     ])
+    const st = await autoStageTracked(repo.path, st0, unstagedRef.current)
     if (typeof id === 'number' && id !== seq.current) return
     setBranch(st.branch)
     setChanges(st.changes)
@@ -162,7 +181,8 @@ export default function App() {
     async (repo?: Repo, opts?: { nonce?: boolean }) => {
       const r = repo || activeRef.current
       if (!r) return
-      const st = await getRepoStatus(r.path)
+      const st0 = await getRepoStatus(r.path)
+      const st = await autoStageTracked(r.path, st0, unstagedRef.current)
       setBranch(st.branch)
       setChanges(st.changes)
       setHasCommits(st.hasCommits)
@@ -369,9 +389,11 @@ export default function App() {
   const toggleStage = async (f: FileChange) => {
     if (!activeRepo || busy) return
     if (f.staged) {
+      unstagedRef.current.add(f.path)
       const r = await unstageFiles(activeRepo.path, [f.path], hasCommits)
       if (r.code !== 0) showToast(r.stderr, 'err')
     } else {
+      unstagedRef.current.delete(f.path)
       const r = await stageFiles(activeRepo.path, [f.path])
       if (r.code !== 0) showToast(r.stderr, 'err')
     }
@@ -382,6 +404,7 @@ export default function App() {
     if (!activeRepo) return
     const unstaged = changes.filter((c) => !c.staged)
     if (unstaged.length === 0) return
+    unstagedRef.current.clear()
     await stageFiles(activeRepo.path, unstaged.map((c) => c.path))
     await refreshStatus(activeRepo, { nonce: true })
   }
@@ -390,6 +413,7 @@ export default function App() {
     if (!activeRepo) return
     const staged = changes.filter((c) => c.staged)
     if (staged.length === 0) return
+    staged.forEach((c) => unstagedRef.current.add(c.path))
     await unstageFiles(activeRepo.path, staged.map((c) => c.path), hasCommits)
     await refreshStatus(activeRepo, { nonce: true })
   }
@@ -411,6 +435,7 @@ export default function App() {
     }
     setSummary('')
     setDescription('')
+    unstagedRef.current.clear()
     await refreshStatus(activeRepo, { nonce: true })
     await loadHistory(activeRepo)
     showToast('Committed successfully')

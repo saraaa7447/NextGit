@@ -234,8 +234,14 @@ export function pushBranch(cwd: string, branch: string, upstream: string | null)
   return git(cwd, ['push', '-u', 'origin', branch])
 }
 
-export function discardFile(cwd: string, file: FileChange) {
+export async function discardFile(cwd: string, file: FileChange) {
   if (file.untracked) return git(cwd, ['clean', '-f', '--', file.path])
+  if (file.staged) {
+    if (file.indexStatus === 'A') {
+      return git(cwd, ['rm', '-f', '-r', '--', file.path])
+    }
+    return git(cwd, ['checkout', 'HEAD', '--', file.path])
+  }
   return git(cwd, ['checkout', '--', file.path])
 }
 

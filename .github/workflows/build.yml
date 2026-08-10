@@ -1,0 +1,81 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['*']
+    paths:
+      - .github/workflows/build.yml
+      - src/**
+      - electron/**
+      - scripts/**
+      - package.json
+  pull_request:
+    paths:
+      - .github/workflows/build.yml
+      - src/**
+      - electron/**
+      - scripts/**
+      - package.json
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-nextgit:
+    name: NextGit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run dist
+
+      - name: Upload .AppImage
+        uses: actions/upload-artifact@v7
+        with:
+          name: nextgit-release-appimage
+          path: release/*.AppImage
+          compression-level: 0
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v7
+        with:
+          name: nextgit-release-debian
+          path: release/*.deb
+          compression-level: 0
+
+  publish-release:
+    name: Publish Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [ build-nextgit ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+  
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob globstar
+  
+          gh release create "$GITHUB_REF_NAME" **/*.{AppImage,deb} \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --draft --generate-notes

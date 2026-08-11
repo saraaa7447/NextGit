@@ -63,45 +63,11 @@ export function DiffView({
   const total = countChanges(files)
 
   return (
-    <div className="diff-pane">
-      <div className="diff-toolbar">
-        <div className="diff-stats">
-          <span className="diff-stat-add">+{total.add}</span>
-          <span className="diff-stat-del">-{total.del}</span>
-          <span className="diff-stat-files">
-            {files.length} file{files.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        {filter && onFilterChange && (
-          <div className="segmented">
-            <button
-              className={`segmented-btn${filter === 'all' ? ' active' : ''}`}
-              onClick={() => onFilterChange('all')}
-            >
-              All
-            </button>
-            <button
-              className={`segmented-btn${filter === 'staged' ? ' active' : ''}`}
-              onClick={() => onFilterChange('staged')}
-            >
-              Staged
-            </button>
-            <button
-              className={`segmented-btn${filter === 'unstaged' ? ' active' : ''}`}
-              onClick={() => onFilterChange('unstaged')}
-            >
-              Unstaged
-            </button>
-          </div>
-        )}
-      </div>
-
       <div className="diff-files">
         {files.map((f, i) => (
           <DiffFileView key={`${f.path}-${i}`} file={f} onDiscard={onDiscard} />
         ))}
       </div>
-    </div>
   )
 }
 

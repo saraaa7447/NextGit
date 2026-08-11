@@ -57,7 +57,7 @@ export function StatusBar({
             <span className="status-changes">{changeSummary(changes)}</span>
             <button
               className="status-author"
-              title="Visit SaraPPC's website"
+              title="Visit my website"
               onClick={() => window.api.openExternal('https://sarascafe.lenowo.org')}
             >
               Made by SaraPPC

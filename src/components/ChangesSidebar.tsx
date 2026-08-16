@@ -49,7 +49,7 @@ export function ChangesSidebar({
   onToggleStage: (f: FileChange) => void
   onStageAll: () => void
   onUnstageAll: () => void
-  onDiscard: (f: FileChange) => void
+  onDiscard: (files: FileChange[]) => void
   onReveal: (f: FileChange) => void
   onOpenTerminal: () => void
   onOpenFinder: () => void
@@ -142,7 +142,13 @@ export function ChangesSidebar({
                     selected={selectedPaths.has(f.path)}
                     onSelect={e => onSelect(f, e.ctrlKey || e.metaKey)}
                     onToggleStage={() => onToggleStage(f)}
-                    onDiscard={() => onDiscard(f)}
+                    onDiscard={() => {
+                      if (selectedPaths.has(f.path) && selectedPaths.size > 1) {
+                        onDiscard(changes.filter(c => selectedPaths.has(c.path)))
+                      } else {
+                        onDiscard([f])
+                      }
+                    }}
                     onReveal={() => onReveal(f)}
                   />
                 ))}

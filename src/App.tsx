@@ -555,33 +555,53 @@ export default function App() {
     showToast('Git identity saved')
   }
 
-  const requestDiscard = (f: FileChange) => {
+  const requestDiscard = (files: FileChange[]) => {
+    const f = files[0]
     setConfirm({
-      title: `Discard changes to "${f.path}"?`,
-      message: (
-        <>
-          This will permanently discard
-          {' '}
-          {f.untracked ? 'this untracked file' : 'all uncommitted changes'}
-          .
-          This cannot be undone.
-        </>
-      ),
+      title: files.length > 1
+        ? `Discard changes to ${files.length} files?`
+        : `Discard changes to "${f?.path}"?`,
+      message: files.length > 1
+        ? (
+            <>
+              This will permanently discard all uncommitted changes to
+              {' '}
+              {files.length}
+              {' '}
+              files. This cannot be undone.
+            </>
+          )
+        : (
+            <>
+              This will permanently discard
+              {' '}
+              {f?.untracked ? 'this untracked file' : 'all uncommitted changes'}
+              .
+              This cannot be undone.
+            </>
+          ),
       confirmLabel: 'Discard changes',
       danger: true,
       action: async () => {
         setConfirm(null)
         if (!activeRepo) return
-        await discardFile(activeRepo.path, f)
+        for (const file of files) {
+          await discardFile(activeRepo.path, file)
+        }
         await refreshStatus(activeRepo, { nonce: true })
-        showToast('Changes discarded')
+        showToast(files.length > 1 ? 'Changes discarded' : 'Changes discarded')
       },
     })
   }
 
   const discardByPath = (path: string) => {
     const f = changesRef.current.find(c => c.path === path)
-    if (f) requestDiscard(f)
+    if (!f) return
+    if (selectedPaths.size > 1 && selectedPaths.has(path)) {
+      requestDiscard(changesRef.current.filter(c => selectedPaths.has(c.path)))
+    } else {
+      requestDiscard([f])
+    }
   }
 
   const requestUndoCommit = () => {
@@ -893,7 +913,7 @@ export default function App() {
                           <DiffView
                             files={workingDiff}
                             loading={diffLoading}
-                            onDiscard={selectedFile ? discardByPath : undefined}
+                            onDiscard={selectedFile && selectedPaths.size <= 1 ? discardByPath : undefined}
                             hasSelection={!!selectedFile}
                             emptyTitle="Select a file to view changes"
                             emptyDesc="Select a changed file to see a preview of your changes."

@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Icon } from './Icons'
-import { Dropdown } from './Dropdown'
-import { ThemePicker } from './ThemePicker'
+
 import type { BranchInfo, Repo } from '../types'
+import { Dropdown } from './Dropdown'
+import { Icon } from './Icons'
+import { ThemePicker } from './ThemePicker'
 
 interface ToolbarProps {
   repos: Repo[]
@@ -82,20 +83,20 @@ export function Toolbar(props: ToolbarProps) {
       <div className="toolbar-left">
         <Dropdown
           width={340}
-          button={
+          button={(
             <div className="repo-chip">
               <Icon name="repo" size={18} className="repo-icon" />
               <span className="chip-label">{activeRepo?.name || 'Select a repository'}</span>
               <Icon name="chevronDown" size={14} className="chip-chevron" />
             </div>
-          }
+          )}
         >
           <div className="menu-section-title">Repositories</div>
           <div className="menu-repos">
             {repos.length === 0 && (
               <div className="menu-empty">No repositories added yet.</div>
             )}
-            {repos.map((r) => (
+            {repos.map(r => (
               <button
                 key={r.path}
                 className={`menu-item repo-item${activeRepo?.path === r.path ? ' active' : ''}`}
@@ -150,13 +151,13 @@ export function Toolbar(props: ToolbarProps) {
         <Dropdown
           width={340}
           disabled={!activeRepo}
-          button={
+          button={(
             <div className="branch-chip">
               <Icon name="branch" size={15} className="branch-icon" />
               <span className="chip-label">{head ? (branch?.detached ? '(detached)' : head) : 'Current branch'}</span>
               <Icon name="chevronDown" size={14} className="chip-chevron" />
             </div>
-          }
+          )}
         >
           <div className="menu-section-title">Current branch</div>
           <BranchList
@@ -223,7 +224,7 @@ function BranchList({
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
 
-  const filtered = branches.filter((b) => b.toLowerCase().includes(query.toLowerCase()))
+  const filtered = branches.filter(b => b.toLowerCase().includes(query.toLowerCase()))
 
   return (
     <div className="branch-menu">
@@ -231,16 +232,21 @@ function BranchList({
         <Icon name="search" size={13} />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="Find a branch"
           autoFocus
         />
       </div>
       {query === '' && branches.length > 0 && (
-        <div className="branch-count">{branches.length} branch{branches.length === 1 ? '' : 'es'}</div>
+        <div className="branch-count">
+          {branches.length}
+          {' '}
+          branch
+          {branches.length === 1 ? '' : 'es'}
+        </div>
       )}
       <div className="branch-list">
-        {filtered.map((b) => (
+        {filtered.map(b => (
           <button
             key={b}
             className={`menu-item branch-item${b === current ? ' active' : ''}`}
@@ -255,40 +261,52 @@ function BranchList({
         {filtered.length === 0 && <div className="menu-empty">No branches found.</div>}
       </div>
       <div className="menu-sep" />
-      {creating ? (
-        <div className="branch-create">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="New branch name"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && name.trim()) {
-                onCreate(name.trim())
-                setCreating(false)
-                setName('')
-              }
-            }}
-            autoFocus
-          />
-          <div className="branch-create-actions">
-            <button className="btn btn-subtle btn-small" onClick={() => { setCreating(false); setName('') }}>
-              Cancel
+      {creating
+        ? (
+            <div className="branch-create">
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="New branch name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && name.trim()) {
+                    onCreate(name.trim())
+                    setCreating(false)
+                    setName('')
+                  }
+                }}
+                autoFocus
+              />
+              <div className="branch-create-actions">
+                <button
+                  className="btn btn-subtle btn-small"
+                  onClick={() => {
+                    setCreating(false)
+                    setName('')
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary btn-small"
+                  disabled={!name.trim() || busy}
+                  onClick={() => {
+                    onCreate(name.trim())
+                    setCreating(false)
+                    setName('')
+                  }}
+                >
+                  Create branch
+                </button>
+              </div>
+            </div>
+          )
+        : (
+            <button className="menu-item" onClick={() => setCreating(true)}>
+              <Icon name="plus" size={15} className="menu-item-icon" />
+              <span className="menu-item-label">New branch...</span>
             </button>
-            <button
-              className="btn btn-primary btn-small"
-              disabled={!name.trim() || busy}
-              onClick={() => { onCreate(name.trim()); setCreating(false); setName('') }}
-            >
-              Create branch
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button className="menu-item" onClick={() => setCreating(true)}>
-          <Icon name="plus" size={15} className="menu-item-icon" />
-          <span className="menu-item-label">New branch...</span>
-        </button>
-      )}
+          )}
     </div>
   )
 }

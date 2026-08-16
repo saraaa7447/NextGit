@@ -1,18 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Toolbar } from './components/Toolbar'
+
 import { ChangesSidebar } from './components/ChangesSidebar'
-import { HistorySidebar } from './components/HistorySidebar'
 import { DiffView } from './components/DiffView'
-import { StatusBar } from './components/StatusBar'
+import { HistorySidebar } from './components/HistorySidebar'
 import { Icon } from './components/Icons'
 import {
-  ConfirmModal,
   CloneRepoModal,
+  ConfirmModal,
   CreateRepoModal,
   IdentityModal,
   ScanResultsModal,
 } from './components/Modals'
-import type { BranchInfo, Commit, DiffFilter, FileChange, Repo, RepoStatus, Tab } from './types'
+import { StatusBar } from './components/StatusBar'
+import { Toolbar } from './components/Toolbar'
+import type { DiffFile } from './diffParser'
 import {
   createBranch,
   createCommit,
@@ -35,8 +36,8 @@ import {
   undoCommit,
   unstageFiles,
 } from './gitService'
-import type { DiffFile } from './diffParser'
-import { DEFAULT_THEME, FLAT_KEY, THEME_KEY, THEMES, themeName } from './themes'
+import { DEFAULT_THEME, FLAT_KEY, THEME_KEY, themeName, THEMES } from './themes'
+import type { BranchInfo, Commit, DiffFilter, FileChange, Repo, RepoStatus, Tab } from './types'
 
 const REPOS_KEY = 'gd.repos'
 const ACTIVE_KEY = 'gd.active'
@@ -47,11 +48,11 @@ async function autoStageTracked(
   skip: ReadonlySet<string>,
 ): Promise<RepoStatus> {
   const needs = st.changes.filter(
-    (c) =>
-      !c.untracked &&
-      !c.conflicted &&
-      c.worktreeStatus !== ' ' &&
-      !skip.has(c.path),
+    c =>
+      !c.untracked
+      && !c.conflicted
+      && c.worktreeStatus !== ' '
+      && !skip.has(c.path),
   )
   if (needs.length === 0) return st
   await stageChanges(path, needs)
@@ -59,10 +60,10 @@ async function autoStageTracked(
 }
 
 function applyDiffFilter(changes: FileChange[], filter: DiffFilter): FileChange[] {
-  if (filter === 'staged') return changes.filter((c) => c.staged)
+  if (filter === 'staged') return changes.filter(c => c.staged)
   if (filter === 'unstaged')
     return changes.filter(
-      (c) => c.untracked || (c.worktreeStatus !== ' ' && c.worktreeStatus !== '?'),
+      c => c.untracked || (c.worktreeStatus !== ' ' && c.worktreeStatus !== '?'),
     )
   return changes
 }
@@ -70,9 +71,9 @@ function applyDiffFilter(changes: FileChange[], filter: DiffFilter): FileChange[
 function isIdentityError(stderr: string): boolean {
   const s = stderr.toLowerCase()
   return (
-    s.includes('identity unknown') ||
-    s.includes('please tell me who you are') ||
-    s.includes('unable to auto-detect email address')
+    s.includes('identity unknown')
+    || s.includes('please tell me who you are')
+    || s.includes('unable to auto-detect email address')
   )
 }
 
@@ -89,7 +90,7 @@ export default function App() {
   const [activeRepo, setActiveRepo] = useState<Repo | null>(null)
   const [tab, setTab] = useState<Tab>('changes')
   const [busy, setBusy] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
+  const [toast, setToast] = useState<{ msg: string, type: 'ok' | 'err' } | null>(null)
 
   const [branch, setBranch] = useState<BranchInfo | null>(null)
   const [changes, setChanges] = useState<FileChange[]>([])
@@ -128,7 +129,7 @@ export default function App() {
   const [description, setDescription] = useState('')
   const [theme, setTheme] = useState<string>(() => {
     const stored = localStorage.getItem(THEME_KEY)
-    return THEMES.some((t) => t.id === stored) ? (stored as string) : DEFAULT_THEME
+    return THEMES.some(t => t.id === stored) ? (stored as string) : DEFAULT_THEME
   })
   const [flat, setFlat] = useState(() => localStorage.getItem(FLAT_KEY) === '1')
 
@@ -143,7 +144,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string, type: 'ok' | 'err' = 'ok') => {
     setToast({ msg, type })
-    window.setTimeout(() => setToast((t) => (t && t.msg === msg ? null : t)), 3500)
+    window.setTimeout(() => setToast(t => (t && t.msg === msg ? null : t)), 3500)
   }, [])
 
   const applyTheme = useCallback(
@@ -198,7 +199,7 @@ export default function App() {
     setCommits(log)
     const cur = selectedShaRef.current
     if (log.length > 0) {
-      if (cur && log.some((c) => c.sha === cur)) return
+      if (cur && log.some(c => c.sha === cur)) return
       setSelectedSha(log[0].sha)
     } else {
       setSelectedSha(null)
@@ -229,7 +230,7 @@ export default function App() {
       setBranch(st.branch)
       setChanges(st.changes)
       setHasCommits(st.hasCommits)
-      if (opts?.nonce) setDiffNonce((n) => n + 1)
+      if (opts?.nonce) setDiffNonce(n => n + 1)
       return st
     },
     [],
@@ -248,14 +249,14 @@ export default function App() {
           const res = await window.api.addRepo(cli)
           if (res.ok && res.path) {
             const repo: Repo = { path: res.path, name: res.name || res.path.split('/').pop() || res.path }
-            setRepos((prev) => (prev.some((r) => r.path === repo.path) ? prev : [...prev, repo]))
+            setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
             setActiveRepo(repo)
             return
           }
         }
         const active = localStorage.getItem(ACTIVE_KEY)
         if (active) {
-          const found = stored.find((r) => r.path === active)
+          const found = stored.find(r => r.path === active)
           if (found) setActiveRepo(found)
         }
       } catch {
@@ -275,9 +276,12 @@ export default function App() {
 
   useEffect(() => {
     if (!activeRepo) return
-    const iv = window.setInterval(() => {
-      refreshStatus(activeRepo)
-      getLog(activeRepo.path).then((log) => setCommits(log))
+    const iv = window.setInterval(async () => {
+      const [, log] = await Promise.all([
+        refreshStatus(activeRepo),
+        getLog(activeRepo.path),
+      ])
+      setCommits(log)
     }, 15000)
     const onFocus = () => refreshStatus(activeRef.current || undefined)
     window.addEventListener('focus', onFocus)
@@ -293,16 +297,16 @@ export default function App() {
       if (!(e.ctrlKey || e.metaKey) || (e.key !== 'a' && e.key !== 'A')) return
       const t = e.target as HTMLElement | null
       if (
-        t &&
-        (t.tagName === 'INPUT' ||
-          t.tagName === 'TEXTAREA' ||
-          t.isContentEditable)
+        t
+        && (t.tagName === 'INPUT'
+          || t.tagName === 'TEXTAREA'
+          || t.isContentEditable)
       )
         return
       if (tab !== 'changes' || !activeRepo || changes.length === 0) return
       e.preventDefault()
       const visible = applyDiffFilter(changes, filter)
-      setSelectedPaths(new Set(visible.map((c) => c.path)))
+      setSelectedPaths(new Set(visible.map(c => c.path)))
       if (visible.length > 0) setSelectedPath(visible[visible.length - 1].path)
     }
     window.addEventListener('keydown', onKey)
@@ -321,17 +325,18 @@ export default function App() {
   useEffect(() => {
     if (!activeRepo || !selectedPath || diffLoading) return
     const repo = activeRepo
-    const file = changesRef.current.find((c) => c.path === selectedPath)
+    const file = changesRef.current.find(c => c.path === selectedPath)
     if (!file) return
     let cancelled = false
     setDiffLoading(true)
-    getWorkingDiff(repo.path, file, filter, hasCommits)
-      .then((d) => {
+    ;(async () => {
+      try {
+        const d = await getWorkingDiff(repo.path, file, filter, hasCommits)
         if (!cancelled) setWorkingDiff(d)
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setDiffLoading(false)
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -342,13 +347,14 @@ export default function App() {
     if (!activeRepo || !selectedSha || tab !== 'history') return
     let cancelled = false
     setCommitLoading(true)
-    getCommitDiff(activeRepo.path, selectedSha)
-      .then((d) => {
+    ;(async () => {
+      try {
+        const d = await getCommitDiff(activeRepo.path, selectedSha)
         if (!cancelled) setCommitDiff(d)
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setCommitLoading(false)
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -368,7 +374,7 @@ export default function App() {
       return
     }
     const repo: Repo = { path: res.path, name: res.name || res.path.split('/').pop() || res.path }
-    setRepos((prev) => (prev.some((r) => r.path === repo.path) ? prev : [...prev, repo]))
+    setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
     setActiveRepo(repo)
   }
 
@@ -378,16 +384,16 @@ export default function App() {
     setScanBusy(true)
     const results = await window.api.scanDirectory(folder)
     setScanBusy(false)
-    const known = new Set(repos.map((r) => r.path))
-    const fresh = results.filter((r) => !known.has(r.path))
+    const known = new Set(repos.map(r => r.path))
+    const fresh = results.filter(r => !known.has(r.path))
     setScanResults(fresh)
     if (fresh.length === 0) showToast('No new git repositories found')
   }
 
   const addScanned = (selected: Repo[]) => {
     setRepos((prev) => {
-      const known = new Set(prev.map((r) => r.path))
-      return [...prev, ...selected.filter((r) => !known.has(r.path))]
+      const known = new Set(prev.map(r => r.path))
+      return [...prev, ...selected.filter(r => !known.has(r.path))]
     })
     setScanResults(null)
     if (selected.length > 0) setActiveRepo(selected[0])
@@ -405,7 +411,7 @@ export default function App() {
       confirmLabel: 'Remove repository',
       danger: true,
       action: () => {
-        setRepos((prev) => prev.filter((p) => p.path !== r.path))
+        setRepos(prev => prev.filter(p => p.path !== r.path))
         if (activeRepo?.path === r.path) {
           setActiveRepo(null)
           setBranch(null)
@@ -429,7 +435,7 @@ export default function App() {
       return
     }
     const repo: Repo = { path: res.path || folder, name }
-    setRepos((prev) => (prev.some((r) => r.path === repo.path) ? prev : [...prev, repo]))
+    setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
     setCreateRepoOpen(false)
     setActiveRepo(repo)
     showToast(`Repository "${name}" created`)
@@ -445,7 +451,7 @@ export default function App() {
       return
     }
     const repo: Repo = { path: res.path, name: res.name || res.path.split('/').pop() || res.path }
-    setRepos((prev) => (prev.some((r) => r.path === repo.path) ? prev : [...prev, repo]))
+    setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
     setCloneRepoOpen(false)
     setActiveRepo(repo)
     showToast(`Repository "${repo.name}" cloned`)
@@ -466,18 +472,18 @@ export default function App() {
 
   const toggleStage = async (f: FileChange) => {
     if (!activeRepo || busy) return
-    const sel =
-      selectedPaths.size > 1 && selectedPaths.has(f.path)
+    const sel
+      = selectedPaths.size > 1 && selectedPaths.has(f.path)
         ? [...selectedPaths]
         : [f.path]
-    const targets = changes.filter((c) => sel.includes(c.path))
-    const allStaged = targets.length > 0 && targets.every((c) => c.staged)
+    const targets = changes.filter(c => sel.includes(c.path))
+    const allStaged = targets.length > 0 && targets.every(c => c.staged)
     if (allStaged) {
-      sel.forEach((p) => unstagedRef.current.add(p))
+      sel.forEach(p => unstagedRef.current.add(p))
       const r = await unstageFiles(activeRepo.path, sel, hasCommits)
       if (r.code !== 0) showToast(r.stderr, 'err')
     } else {
-      sel.forEach((p) => unstagedRef.current.delete(p))
+      sel.forEach(p => unstagedRef.current.delete(p))
       const r = await stageChanges(activeRepo.path, targets)
       if (r.code !== 0) showToast(r.stderr, 'err')
     }
@@ -486,7 +492,7 @@ export default function App() {
 
   const stageAll = async () => {
     if (!activeRepo) return
-    const unstaged = changes.filter((c) => !c.staged)
+    const unstaged = changes.filter(c => !c.staged)
     if (unstaged.length === 0) return
     unstagedRef.current.clear()
     await stageChanges(activeRepo.path, unstaged)
@@ -495,10 +501,10 @@ export default function App() {
 
   const unstageAll = async () => {
     if (!activeRepo) return
-    const staged = changes.filter((c) => c.staged)
+    const staged = changes.filter(c => c.staged)
     if (staged.length === 0) return
-    staged.forEach((c) => unstagedRef.current.add(c.path))
-    await unstageFiles(activeRepo.path, staged.map((c) => c.path), hasCommits)
+    staged.forEach(c => unstagedRef.current.add(c.path))
+    await unstageFiles(activeRepo.path, staged.map(c => c.path), hasCommits)
     await refreshStatus(activeRepo, { nonce: true })
   }
 
@@ -549,8 +555,10 @@ export default function App() {
       title: `Discard changes to "${f.path}"?`,
       message: (
         <>
-          This will permanently discard{' '}
-          {f.untracked ? 'this untracked file' : 'all uncommitted changes'}.
+          This will permanently discard
+          {' '}
+          {f.untracked ? 'this untracked file' : 'all uncommitted changes'}
+          .
           This cannot be undone.
         </>
       ),
@@ -567,7 +575,7 @@ export default function App() {
   }
 
   const discardByPath = (path: string) => {
-    const f = changesRef.current.find((c) => c.path === path)
+    const f = changesRef.current.find(c => c.path === path)
     if (f) requestDiscard(f)
   }
 
@@ -578,7 +586,12 @@ export default function App() {
       message: (
         <>
           This will undo the commit
-          <strong> {last ? `"${last.summary}"` : ''}</strong> and keep the
+          <strong>
+            {' '}
+            {last ? `"${last.summary}"` : ''}
+          </strong>
+          {' '}
+          and keep the
           changes staged in your working directory.
           {branch?.ahead ? ' The commit has already been pushed.' : ''}
         </>
@@ -635,7 +648,7 @@ export default function App() {
 
   const doSync = async () => {
     if (!activeRepo || !branch) return
-    let st = branch
+    const st = branch
     if (!st.upstream || st.gone) {
       setBusy('push')
       const r = await pushBranch(activeRepo.path, st.head, null)
@@ -680,7 +693,7 @@ export default function App() {
     setBusy(null)
     if (r.code !== 0) return showToast(r.stderr.split('\n')[0] || 'Stash failed', 'err')
     await refreshStatus(activeRepo, { nonce: true })
-    setStashCount((n) => n + 1)
+    setStashCount(n => n + 1)
     showToast('All changes stashed')
   }
 
@@ -704,7 +717,7 @@ export default function App() {
     setBusy(null)
   }
 
-  const selectedFile = selectedPath ? changes.find((c) => c.path === selectedPath) : null
+  const selectedFile = selectedPath ? changes.find(c => c.path === selectedPath) : null
 
   // ---------------------------------------------------------------- render
   return (
@@ -752,135 +765,154 @@ export default function App() {
         </button>
       </div>
 
-      {!activeRepo ? (
-        <div className="welcome">
-          <div className="welcome-icon">
-            <Icon name="git" size={44} />
-          </div>
-          <h1>Get started with {repos.length > 0 ? 'a repository' : 'NextGit'}</h1>
-          <p>
-            {repos.length > 0
-              ? 'Select a repository from the list, or add another one.'
-              : 'Add an existing repository or create a new one to begin.'}
-          </p>
-          <div className="welcome-actions">
-            {repos.length > 0 ? (
-              <button className="btn btn-primary" onClick={() => repos[0] && setActiveRepo(repos[0])}>
-                Select a repository
-              </button>
-            ) : (
-              <button className="btn btn-primary" onClick={addRepo}>
-                <Icon name="plus" size={15} /> Add repository
-              </button>
+      {!activeRepo
+        ? (
+            <div className="welcome">
+              <div className="welcome-icon">
+                <Icon name="git" size={44} />
+              </div>
+              <h1>
+                Get started with
+                {repos.length > 0 ? 'a repository' : 'NextGit'}
+              </h1>
+              <p>
+                {repos.length > 0
+                  ? 'Select a repository from the list, or add another one.'
+                  : 'Add an existing repository or create a new one to begin.'}
+              </p>
+              <div className="welcome-actions">
+                {repos.length > 0
+                  ? (
+                      <button className="btn btn-primary" onClick={() => repos[0] && setActiveRepo(repos[0])}>
+                        Select a repository
+                      </button>
+                    )
+                  : (
+                      <button className="btn btn-primary" onClick={addRepo}>
+                        <Icon name="plus" size={15} />
+                        {' '}
+                        Add repository
+                      </button>
+                    )}
+                <button className="btn btn-default" onClick={() => setCreateRepoOpen(true)}>
+                  <Icon name="repo" size={15} />
+                  {' '}
+                  Create a repository
+                </button>
+                <button className="btn btn-default" onClick={() => setCloneRepoOpen(true)}>
+                  <Icon name="download" size={15} />
+                  {' '}
+                  Clone a repository
+                </button>
+                <button className="btn btn-default" onClick={scanFolder}>
+                  <Icon name="search" size={15} />
+                  {' '}
+                  Find repositories
+                </button>
+              </div>
+              {repos.length === 0 && (
+                <p className="welcome-hint">
+                  Your repositories are stored on this computer only.
+                </p>
+              )}
+            </div>
+          )
+        : initializing
+          ? (
+              <div className="loading-full">
+                <span className="spinner" />
+                {' '}
+                Loading repository...
+              </div>
+            )
+          : (
+              <div className="content">
+                {tab === 'changes'
+                  ? (
+                      <>
+                        <aside className="sidebar">
+                          <ChangesSidebar
+                            changes={changes}
+                            filter={filter}
+                            onFilterChange={setFilter}
+                            selectedPaths={selectedPaths}
+                            onSelect={selectFile}
+                            onToggleStage={toggleStage}
+                            onStageAll={stageAll}
+                            onUnstageAll={unstageAll}
+                            onDiscard={requestDiscard}
+                            onReveal={f =>
+                              activeRepo && window.api.revealFile(`${activeRepo.path}/${f.path}`)}
+                            onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
+                            onOpenFinder={() => activeRepo && window.api.openFolder(activeRepo.path)}
+                            branchName={branch?.head || ''}
+                            hasCommits={hasCommits}
+                            identity={identity}
+                            hasIdentity={identity.configured}
+                            onOpenIdentity={openIdentity}
+                            summary={summary}
+                            description={description}
+                            onSummaryChange={setSummary}
+                            onDescriptionChange={setDescription}
+                            onCommit={doCommit}
+                            committing={busy === 'commit'}
+                            onStash={doStash}
+                            onPopStash={doPopStash}
+                            stashCount={stashCount}
+                          />
+                        </aside>
+                        <main className="diff-col">
+                          <DiffView
+                            files={workingDiff}
+                            loading={diffLoading}
+                            onDiscard={selectedFile ? discardByPath : undefined}
+                            hasSelection={!!selectedFile}
+                            emptyTitle="Select a file to view changes"
+                            emptyDesc="Select a changed file to see a preview of your changes."
+                          />
+                        </main>
+                      </>
+                    )
+                  : (
+                      <>
+                        <aside className="sidebar">
+                          <HistorySidebar
+                            commits={commits}
+                            selectedSha={selectedSha}
+                            onSelect={c => setSelectedSha(c.sha)}
+                            loading={initializing}
+                            branch={branch?.head || null}
+                            onUndoCommit={requestUndoCommit}
+                            canUndo={commits.length > 0 && !branch?.ahead && hasCommits}
+                            onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
+                            onOpenFinder={() => activeRepo && window.api.openFolder(activeRepo.path)}
+                          />
+                        </aside>
+                        <main className="diff-col">
+                          <DiffView
+                            files={commitDiff}
+                            loading={commitLoading}
+                            hasSelection={!!selectedSha}
+                            emptyTitle="Select a commit to view its changes"
+                            emptyDesc="Select a commit in the list to see a diff of what it changed."
+                          />
+                        </main>
+                      </>
+                    )}
+              </div>
             )}
-            <button className="btn btn-default" onClick={() => setCreateRepoOpen(true)}>
-              <Icon name="repo" size={15} /> Create a repository
-            </button>
-            <button className="btn btn-default" onClick={() => setCloneRepoOpen(true)}>
-              <Icon name="download" size={15} /> Clone a repository
-            </button>
-            <button className="btn btn-default" onClick={scanFolder}>
-              <Icon name="search" size={15} /> Find repositories
-            </button>
-          </div>
-          {repos.length === 0 && (
-            <p className="welcome-hint">
-              Your repositories are stored on this computer only.
-            </p>
-          )}
-        </div>
-      ) : initializing ? (
-        <div className="loading-full">
-          <span className="spinner" /> Loading repository...
-        </div>
-      ) : (
-        <div className="content">
-          {tab === 'changes' ? (
-            <>
-              <aside className="sidebar">
-                <ChangesSidebar
-                  changes={changes}
-                  filter={filter}
-                  onFilterChange={setFilter}
-                  selectedPaths={selectedPaths}
-                  onSelect={selectFile}
-                  onToggleStage={toggleStage}
-                  onStageAll={stageAll}
-                  onUnstageAll={unstageAll}
-                  onDiscard={requestDiscard}
-                  onReveal={(f) =>
-                    activeRepo && window.api.revealFile(`${activeRepo.path}/${f.path}`)
-                  }
-                  onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
-                  onOpenFinder={() => activeRepo && window.api.openFolder(activeRepo.path)}
-                  repoPath={activeRepo.path}
-                  branchName={branch?.head || ''}
-                  hasCommits={hasCommits}
-                  identity={identity}
-                  hasIdentity={identity.configured}
-                  onOpenIdentity={openIdentity}
-                  summary={summary}
-                  description={description}
-                  onSummaryChange={setSummary}
-                  onDescriptionChange={setDescription}
-                  onCommit={doCommit}
-                  committing={busy === 'commit'}
-                  onStash={doStash}
-                  onPopStash={doPopStash}
-                  stashCount={stashCount}
-                />
-              </aside>
-              <main className="diff-col">
-                <DiffView
-                  files={workingDiff}
-                  loading={diffLoading}
-                  filter={filter}
-                  onFilterChange={setFilter}
-                  onDiscard={selectedFile ? discardByPath : undefined}
-                  hasSelection={!!selectedFile}
-                  emptyTitle="Select a file to view changes"
-                  emptyDesc="Select a changed file to see a preview of your changes."
-                />
-              </main>
-            </>
-          ) : (
-            <>
-              <aside className="sidebar">
-                <HistorySidebar
-                  commits={commits}
-                  selectedSha={selectedSha}
-                  onSelect={(c) => setSelectedSha(c.sha)}
-                  loading={initializing}
-                  branch={branch?.head || null}
-                  onUndoCommit={requestUndoCommit}
-                  canUndo={commits.length > 0 && !branch?.ahead && hasCommits}
-                  onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
-                  onOpenFinder={() => activeRepo && window.api.openFolder(activeRepo.path)}
-                />
-              </aside>
-              <main className="diff-col">
-                <DiffView
-                  files={commitDiff}
-                  loading={commitLoading}
-                  hasSelection={!!selectedSha}
-                  emptyTitle="Select a commit to view its changes"
-                  emptyDesc="Select a commit in the list to see a diff of what it changed."
-                />
-              </main>
-            </>
-          )}
-        </div>
-      )}
 
       <StatusBar branch={branch} changes={changes} activeRepo={activeRepo?.path || null} busy={busy} />
 
       {toast && (
         <div className={`toast ${toast.type}`}>
-          {toast.type === 'ok' ? (
-            <Icon name="check" size={15} />
-          ) : (
-            <Icon name="x" size={15} />
-          )}
+          {toast.type === 'ok'
+            ? (
+                <Icon name="check" size={15} />
+              )
+            : (
+                <Icon name="x" size={15} />
+              )}
           <span>{toast.msg}</span>
         </div>
       )}

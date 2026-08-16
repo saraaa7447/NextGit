@@ -77,8 +77,8 @@ export function parseDiff(raw: string): DiffFile[] {
     } else if (line.startsWith('+++ b/')) {
       cur.path = cleanPath(line.slice(4))
     } else if (
-      line.startsWith('Binary files') ||
-      line.startsWith('GIT binary patch')
+      line.startsWith('Binary files')
+      || line.startsWith('GIT binary patch')
     ) {
       cur.binary = true
     } else if (line.startsWith('@@')) {
@@ -110,7 +110,7 @@ export function parseDiff(raw: string): DiffFile[] {
   return files
 }
 
-export function countChanges(files: DiffFile[]): { add: number; del: number } {
+export function countChanges(files: DiffFile[]): { add: number, del: number } {
   let add = 0
   let del = 0
   for (const f of files) {

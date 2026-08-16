@@ -28,4 +28,14 @@ export default defineConfig([
       'simple-import-sort/exports': 'error',
     },
   },
+
+  {
+    files: ['electron/**/*.cjs', 'scripts/**/*.mjs', 'scripts/**/*.ts', 'vite.config.ts', 'eslint.config.ts'],
+    languageOptions: { globals: globals.node },
+  },
+
+  {
+    files: ['electron/**/*.cjs', 'scripts/smoke.ts'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
 ])

@@ -38,11 +38,11 @@ export function Dropdown({
     <div className={`dropdown${className ? ' ' + className : ''}`} ref={ref}>
       <div
         className={`dropdown-btn${disabled ? ' disabled' : ''}${open ? ' open' : ''}`}
-        onClick={() => !disabled && setOpen((o) => !o)}
+        onClick={() => !disabled && setOpen(o => !o)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') !disabled && setOpen((o) => !o)
+          if (e.key === 'Enter' && !disabled) setOpen(o => !o)
         }}
       >
         {button}

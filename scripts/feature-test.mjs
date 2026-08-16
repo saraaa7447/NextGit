@@ -1,12 +1,12 @@
-import { spawn, execFileSync } from 'child_process'
-import { rmSync, mkdirSync, writeFileSync } from 'fs'
+import { execFileSync, spawn } from 'child_process'
+import { mkdirSync, rmSync, writeFileSync } from 'fs'
 
 const results = []
 const check = (cond, label) => {
   results.push([cond, label])
   console.log((cond ? '  ok - ' : '  FAIL - ') + label)
 }
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 async function launch(repoPath, port) {
   const child = spawn(
@@ -18,26 +18,31 @@ async function launch(repoPath, port) {
   for (let i = 0; i < 60; i++) {
     try {
       const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
-      page = list.find((t) => t.type === 'page')
+      page = list.find(t => t.type === 'page')
       if (page) break
-    } catch {}
+    } catch {
+      /* retry */
+    }
     await sleep(400)
   }
   const ws = new WebSocket(page.webSocketDebuggerUrl)
   let id = 0
   const pending = new Map()
-  await new Promise((res, rej) => {
-    ws.onopen = res
-    ws.onerror = rej
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve
+    ws.onerror = reject
   })
-  const send = (method, params = {}) => new Promise((res) => {
+  const send = (method, params = {}) => new Promise((resolve) => {
     const mid = ++id
-    pending.set(mid, res)
+    pending.set(mid, resolve)
     ws.send(JSON.stringify({ id: mid, method, params }))
   })
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data)
-    if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id) }
+    if (m.id && pending.has(m.id)) {
+      pending.get(m.id)(m.result)
+      pending.delete(m.id)
+    }
   }
   await send('Runtime.enable')
   return {
@@ -45,7 +50,10 @@ async function launch(repoPath, port) {
       const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })
       return r.result?.value
     },
-    close: () => { ws.close(); child.kill() },
+    close: () => {
+      ws.close()
+      child.kill()
+    },
   }
 }
 
@@ -68,7 +76,7 @@ console.log('test: branch creation via dropdown')
   check(chip === 'feature/ux', `switched to new branch (chip=${chip})`)
   const branchOut = execFileSync('git', ['branch', '--list'], { cwd: DEMO, encoding: 'utf8' })
   const branches = branchOut.trim().split('\n')
-  check(branches.some((b) => b.replace('*', '').trim() === 'feature/ux'), 'branch exists via git')
+  check(branches.some(b => b.replace('*', '').trim() === 'feature/ux'), 'branch exists via git')
   const isOpen = await app.js(`document.querySelector('.branch-chip')?.parentElement?.classList.contains('open')`)
   if (!isOpen) {
     await app.js(`document.querySelector('.branch-chip')?.parentElement?.click()`)

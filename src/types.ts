@@ -53,12 +53,12 @@ export interface Api {
   git: (cwd: string, args: string[]) => Promise<GitResult>
   getCliPath: () => Promise<string | null>
   chooseFolder: () => Promise<string | null>
-  addRepo: (folder: string) => Promise<{ ok: boolean; path?: string; name?: string; error?: string }>
+  addRepo: (folder: string) => Promise<{ ok: boolean, path?: string, name?: string, error?: string }>
   scanDirectory: (dir: string) => Promise<Repo[]>
-  createRepo: (folder: string) => Promise<{ ok: boolean; path?: string; error?: string }>
+  createRepo: (folder: string) => Promise<{ ok: boolean, path?: string, error?: string }>
   homeDir: () => Promise<string>
-  setIdentity: (name: string, email: string) => Promise<{ ok: boolean; error?: string }>
-  cloneRepo: (url: string, dest: string) => Promise<{ ok: boolean; path?: string; name?: string; error?: string }>
+  setIdentity: (name: string, email: string) => Promise<{ ok: boolean, error?: string }>
+  cloneRepo: (url: string, dest: string) => Promise<{ ok: boolean, path?: string, name?: string, error?: string }>
   openFolder: (folder: string) => Promise<boolean>
   revealFile: (filePath: string) => Promise<boolean>
   openExternal: (url: string) => Promise<boolean>

@@ -54,12 +54,13 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(() => {
+;(async () => {
+  await app.whenReady()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-})
+})()
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
@@ -71,7 +72,7 @@ app.on('window-all-closed', () => {
 
 const MAX_BUFFER = 256 * 1024 * 1024
 
-function runGit(cwd, args, opts = {}) {
+function runGit(cwd, args) {
   return new Promise((resolve) => {
     const env = { ...process.env, LC_ALL: 'C', GIT_TERMINAL_PROMPT: '0' }
     execFile(
@@ -85,7 +86,7 @@ function runGit(cwd, args, opts = {}) {
           stderr: stderr || '',
           error: err ? err.message : null,
         })
-      }
+      },
     )
   })
 }
@@ -150,7 +151,7 @@ ipcMain.handle('scan-directory', async (_evt, dir) => {
         if (st.isDirectory() || st.isFile()) {
           const top = await runGit(current, ['rev-parse', '--show-toplevel'])
           const root = top.code === 0 ? top.stdout.trim() : current
-          if (!results.some((r) => r.path === root)) {
+          if (!results.some(r => r.path === root)) {
             results.push({ path: root, name: path.basename(root) })
           }
         }

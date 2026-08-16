@@ -1,4 +1,4 @@
-import { spawn, execFileSync } from 'child_process'
+import { execFileSync, spawn } from 'child_process'
 import { rmSync, writeFileSync } from 'fs'
 
 const PORT = 9336
@@ -18,15 +18,17 @@ const child = spawn(
   ['.', REPO, '--no-sandbox', '--disable-gpu', `--remote-debugging-port=${PORT}`],
   { cwd: process.cwd(), stdio: ['ignore', 'ignore', 'ignore'] },
 )
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 async function getTarget() {
   for (let i = 0; i < 60; i++) {
     try {
       const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()
-      const page = list.find((t) => t.type === 'page')
+      const page = list.find(t => t.type === 'page')
       if (page) return page
-    } catch {}
+    } catch {
+      /* retry */
+    }
     await sleep(400)
   }
   throw new Error('no target')
@@ -38,9 +40,9 @@ function connect(url) {
     const pending = new Map()
     ws.onopen = () => resolve({
       send(method, params = {}) {
-        return new Promise((res) => {
+        return new Promise((resolve) => {
           const mid = ++id
-          pending.set(mid, res)
+          pending.set(mid, resolve)
           ws.send(JSON.stringify({ id: mid, method, params }))
         })
       },
@@ -87,7 +89,7 @@ console.log('flow-test: app loaded, files =', await js(`document.querySelectorAl
 console.log('flow-test: tracked changes auto-staged on load')
 let staged = await stagedFiles()
 check(
-  ['app.ts', 'engine.ts', 'util.js', 'README.md'].every((f) => staged.includes(f)),
+  ['app.ts', 'engine.ts', 'util.js', 'README.md'].every(f => staged.includes(f)),
   `tracked changes auto-staged on load: ${JSON.stringify(staged)}`,
 )
 check(!staged.includes('notes.txt'), `untracked file not auto-staged (${JSON.stringify(staged)})`)

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+
 import { displayStatus } from '../gitService'
 import type { FileChange } from '../types'
 
@@ -37,13 +38,13 @@ export function Segmented<T extends string>({
   value,
   onChange,
 }: {
-  options: { value: T; label: string }[]
+  options: { value: T, label: string }[]
   value: T
   onChange: (v: T) => void
 }) {
   return (
     <div className="segmented" role="tablist">
-      {options.map((o) => (
+      {options.map(o => (
         <button
           key={o.value}
           role="tab"
@@ -84,7 +85,7 @@ export function Modal({
       <div
         className="modal"
         style={{ width }}
-        onMouseDown={(e) => e.stopPropagation()}
+        onMouseDown={e => e.stopPropagation()}
       >
         <div className="modal-header">
           <h3>{title}</h3>
@@ -119,13 +120,13 @@ export function EmptyState({
   )
 }
 
-const statusMeta: Record<string, { label: string; cls: string }> = {
-  M: { label: 'Modified', cls: 'st-modified' },
-  A: { label: 'Added', cls: 'st-added' },
-  D: { label: 'Deleted', cls: 'st-deleted' },
-  R: { label: 'Renamed', cls: 'st-renamed' },
-  C: { label: 'Copied', cls: 'st-renamed' },
-  U: { label: 'Conflicted', cls: 'st-conflicted' },
+const statusMeta: Record<string, { label: string, cls: string }> = {
+  'M': { label: 'Modified', cls: 'st-modified' },
+  'A': { label: 'Added', cls: 'st-added' },
+  'D': { label: 'Deleted', cls: 'st-deleted' },
+  'R': { label: 'Renamed', cls: 'st-renamed' },
+  'C': { label: 'Copied', cls: 'st-renamed' },
+  'U': { label: 'Conflicted', cls: 'st-conflicted' },
   '?': { label: 'Untracked', cls: 'st-untracked' },
   '!': { label: 'Ignored', cls: 'st-untracked' },
 }

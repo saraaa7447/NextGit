@@ -1,17 +1,16 @@
 import { execFile } from 'child_process'
 
-declare const global: any
+declare const global: { window: unknown }
 
 const runGit = (cwd: string, args: string[]) =>
-  new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
+  new Promise<{ code: number, stdout: string, stderr: string }>((resolve) => {
     execFile(
       'git',
       ['--no-pager', ...args],
       { cwd, maxBuffer: 256 * 1024 * 1024 },
       (err, stdout, stderr) => {
-        const e = err as any
         resolve({
-          code: err ? (typeof e.code === 'number' ? e.code : 1) : 0,
+          code: err ? (typeof err.code === 'number' ? err.code : 1) : 0,
           stdout: stdout || '',
           stderr: stderr || '',
         })
@@ -20,8 +19,9 @@ const runGit = (cwd: string, args: string[]) =>
   })
 
 global.window = { api: { git: runGit } }
-;(process.env as any).USER = 'smoketest'
+process.env.USER = 'smoketest'
 
+import { countChanges } from '../src/diffParser'
 import {
   displayStatus,
   getBranches,
@@ -32,7 +32,6 @@ import {
   getWorkingDiff,
   unstageFiles,
 } from '../src/gitService'
-import { countChanges } from '../src/diffParser'
 
 let failures = 0
 function assert(cond: boolean, msg: string) {
@@ -73,7 +72,7 @@ async function main() {
   assert(!st.branch?.detached, 'not detached')
   assert(st.hasCommits, 'has commits')
 
-  const byName = (p: string) => st.changes.find((c) => c.path === p)
+  const byName = (p: string) => st.changes.find(c => c.path === p)
 
   const ren = byName('aa.txt')
   assert(!!ren, 'rename entry present')
@@ -125,7 +124,7 @@ async function main() {
   const unRes = await unstageFiles(repo, ['b.txt'], true)
   assert(unRes.code === 0, 'unstage succeeded')
   const st2 = await getRepoStatus(repo)
-  assert(!st2.changes.find((c) => c.path === 'b.txt')?.staged, 'b.txt no longer staged')
+  assert(!st2.changes.find(c => c.path === 'b.txt')?.staged, 'b.txt no longer staged')
 
   console.log('smoke: empty repo')
   const empty = '/tmp/opencode/emptyrepo'

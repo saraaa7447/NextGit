@@ -1,7 +1,8 @@
 import React from 'react'
+
+import { THEMES } from '../themes'
 import { Dropdown } from './Dropdown'
 import { Icon } from './Icons'
-import { THEMES } from '../themes'
 
 export function ThemePicker({
   theme,
@@ -18,21 +19,21 @@ export function ThemePicker({
     <Dropdown
       width={200}
       alignRight
-      button={
+      button={(
         <div className="theme-chip" title="Theme">
           <Icon name="palette" size={15} />
         </div>
-      }
+      )}
     >
       <div className="menu-section-title">Theme</div>
-      {THEMES.map((t) => (
+      {THEMES.map(t => (
         <button
           key={t.id}
           className={`theme-option${theme === t.id ? ' active' : ''}`}
           onClick={() => onSelect(t.id)}
         >
           <span className="theme-swatches">
-            {t.swatch.map((c) => (
+            {t.swatch.map(c => (
               <span key={c} className="theme-swatch" style={{ background: c }} />
             ))}
           </span>

@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react'
-import { Icon } from './Icons'
-import { EmptyState } from './Common'
+import React from 'react'
+
 import { countChanges, type DiffFile } from '../diffParser'
-import type { DiffFilter } from '../types'
+import { EmptyState } from './Common'
+import { Icon } from './Icons'
 
 const MAX_RENDER_LINES = 6000
 
-const diffStatusMeta: Record<string, { label: string; cls: string }> = {
+const diffStatusMeta: Record<string, { label: string, cls: string }> = {
   modified: { label: 'Modified', cls: 'st-modified' },
   added: { label: 'Added', cls: 'st-added' },
   deleted: { label: 'Deleted', cls: 'st-deleted' },
@@ -19,8 +19,6 @@ export function DiffView({
   loading,
   emptyTitle,
   emptyDesc,
-  filter,
-  onFilterChange,
   onDiscard,
   hasSelection,
 }: {
@@ -28,15 +26,15 @@ export function DiffView({
   loading: boolean
   emptyTitle: string
   emptyDesc?: string
-  filter?: DiffFilter
-  onFilterChange?: (f: DiffFilter) => void
   onDiscard?: (path: string) => void
   hasSelection: boolean
 }) {
   if (loading) {
     return (
       <div className="diff-pane loading">
-        <span className="spinner" /> Loading...
+        <span className="spinner" />
+        {' '}
+        Loading...
       </div>
     )
   }
@@ -60,14 +58,12 @@ export function DiffView({
     )
   }
 
-  const total = countChanges(files)
-
   return (
-      <div className="diff-files">
-        {files.map((f, i) => (
-          <DiffFileView key={`${f.path}-${i}`} file={f} onDiscard={onDiscard} />
-        ))}
-      </div>
+    <div className="diff-files">
+      {files.map((f, i) => (
+        <DiffFileView key={`${f.path}-${i}`} file={f} onDiscard={onDiscard} />
+      ))}
+    </div>
   )
 }
 
@@ -91,42 +87,57 @@ function DiffFileView({
           {file.path}
         </span>
         <span className="diff-file-stats">
-          <span className="diff-stat-add">+{stats.add}</span>
-          <span className="diff-stat-del">-{stats.del}</span>
+          <span className="diff-stat-add">
+            +
+            {stats.add}
+          </span>
+          <span className="diff-stat-del">
+            -
+            {stats.del}
+          </span>
         </span>
         {onDiscard && (
           <button className="btn btn-subtle btn-small discard-btn" onClick={() => onDiscard(file.path)}>
-            <Icon name="trash" size={12} /> Discard changes
+            <Icon name="trash" size={12} />
+            {' '}
+            Discard changes
           </button>
         )}
       </div>
 
-      {file.binary ? (
-        <div className="diff-binary">Binary file not shown.</div>
-      ) : (
-        <div className="diff-hunks">
-          {file.hunks.map((h, i) => (
-            <div className="diff-hunk" key={i}>
-              <div className="diff-hunk-header">{h.header}</div>
-              {!truncated && (
-                <div className="diff-lines">
-                  {h.lines.map((l, j) => (
-                    <div key={j} className={`diff-line ${l.type}`}>
-                      <span className="dl-no old">{l.oldNo ?? ''}</span>
-                      <span className="dl-no new">{l.newNo ?? ''}</span>
-                      <span className="dl-sign">{l.type === 'add' ? '+' : l.type === 'del' ? '-' : l.type === 'nonewline' ? '\\' : ' '}</span>
-                      <span className="dl-content">{l.content}</span>
+      {file.binary
+        ? (
+            <div className="diff-binary">Binary file not shown.</div>
+          )
+        : (
+            <div className="diff-hunks">
+              {file.hunks.map((h, i) => (
+                <div className="diff-hunk" key={i}>
+                  <div className="diff-hunk-header">{h.header}</div>
+                  {!truncated && (
+                    <div className="diff-lines">
+                      {h.lines.map((l, j) => (
+                        <div key={j} className={`diff-line ${l.type}`}>
+                          <span className="dl-no old">{l.oldNo ?? ''}</span>
+                          <span className="dl-no new">{l.newNo ?? ''}</span>
+                          <span className="dl-sign">{l.type === 'add' ? '+' : l.type === 'del' ? '-' : l.type === 'nonewline' ? '\\' : ' '}</span>
+                          <span className="dl-content">{l.content}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+              ))}
+              {truncated && (
+                <div className="diff-truncated">
+                  Diff is too large to display (
+                  {totalLines}
+                  {' '}
+                  lines).
                 </div>
               )}
             </div>
-          ))}
-          {truncated && (
-            <div className="diff-truncated">Diff is too large to display ({totalLines} lines).</div>
           )}
-        </div>
-      )}
     </div>
   )
 }

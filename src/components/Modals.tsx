@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
+
+import type { Repo } from '../types'
 import { Button, Modal } from './Common'
 import { Icon } from './Icons'
-import type { Repo } from '../types'
 
 export function ConfirmModal({
   title,
@@ -173,7 +174,8 @@ export function CloneRepoModal({
         </div>
         <div className="field-hint">
           The repository will be cloned into a folder named &ldquo;
-          {repoNameFromUrl(url) || '&lt;repo&gt;'}&rdquo;.
+          {repoNameFromUrl(url) || '&lt;repo&gt;'}
+          &rdquo;.
         </div>
       </label>
       {(error || propError) && <div className="form-error">{error || propError}</div>}
@@ -192,13 +194,17 @@ export function CloneRepoModal({
             onClone(u, d)
           }}
         >
-          {busy ? (
-            <>
-              <span className="spinner light" /> Cloning...
-            </>
-          ) : (
-            'Clone repository'
-          )}
+          {busy
+            ? (
+                <>
+                  <span className="spinner light" />
+                  {' '}
+                  Cloning...
+                </>
+              )
+            : (
+                'Clone repository'
+              )}
         </Button>
       </div>
     </Modal>
@@ -229,14 +235,17 @@ export function IdentityModal({
     <Modal title="Set your Git identity" onClose={onClose} width={480}>
       <p className="confirm-message">
         Git doesn't know who you are, so commits can't be created. Enter a name
-        and email address — they will be stored globally in{' '}
-        <code>~/.gitconfig</code> and used for all your repositories.
+        and email address — they will be stored globally in
+        {' '}
+        <code>~/.gitconfig</code>
+        {' '}
+        and used for all your repositories.
       </p>
       <label className="field">
         <span className="field-label">Name</span>
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
           placeholder="Jane Doe"
           autoFocus
         />
@@ -245,14 +254,19 @@ export function IdentityModal({
         <span className="field-label">Email</span>
         <input
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           placeholder="jane@example.com"
           type="email"
         />
       </label>
       <p className="field-hint">
-        Prefer the command line? Open a terminal to run{' '}
-        <code>git config --global ...</code> or <code>gh auth login</code>.
+        Prefer the command line? Open a terminal to run
+        {' '}
+        <code>git config --global ...</code>
+        {' '}
+        or
+        <code>gh auth login</code>
+        .
       </p>
       {error && <div className="form-error">{error}</div>}
       <div className="confirm-actions">
@@ -282,11 +296,11 @@ export function ScanResultsModal({
   busy: boolean
 }) {
   const [selected, setSelected] = useState<Set<string>>(
-    new Set(repos.map((r) => r.path)),
+    new Set(repos.map(r => r.path)),
   )
   const [query, setQuery] = useState('')
 
-  const filtered = repos.filter((r) =>
+  const filtered = repos.filter(r =>
     r.name.toLowerCase().includes(query.toLowerCase()),
   )
 
@@ -307,12 +321,12 @@ export function ScanResultsModal({
         <Icon name="search" size={13} />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="Filter repositories"
         />
       </div>
       <div className="scan-list">
-        {filtered.map((r) => (
+        {filtered.map(r => (
           <div
             key={r.path}
             className={`scan-item${selected.has(r.path) ? ' selected' : ''}`}
@@ -329,15 +343,16 @@ export function ScanResultsModal({
       </div>
       <div className="confirm-actions">
         <span className="scan-count">
-          {selected.size} selected
+          {selected.size}
+          {' '}
+          selected
         </span>
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="primary"
           disabled={selected.size === 0 || busy}
           onClick={() =>
-            onAdd(repos.filter((r) => selected.has(r.path)))
-          }
+            onAdd(repos.filter(r => selected.has(r.path)))}
         >
           {busy ? 'Adding...' : `Add ${selected.size} repositor${selected.size === 1 ? 'y' : 'ies'}`}
         </Button>

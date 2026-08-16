@@ -34,5 +34,5 @@ export const THEME_KEY = 'gd.theme'
 export const FLAT_KEY = 'gd.flat'
 
 export function themeName(id: string): string {
-  return THEMES.find((t) => t.id === id)?.name || id
+  return THEMES.find(t => t.id === id)?.name || id
 }

@@ -1,7 +1,8 @@
 import React from 'react'
-import { Icon } from './Icons'
-import type { BranchInfo, FileChange } from '../types'
+
 import { displayStatus } from '../gitService'
+import type { BranchInfo, FileChange } from '../types'
+import { Icon } from './Icons'
 
 function changeSummary(changes: FileChange[]): string {
   const counts: Record<string, number> = {}
@@ -33,37 +34,45 @@ export function StatusBar({
   return (
     <footer className="status-bar">
       <div className="status-left">
-        {activeRepo ? (
-          <>
-            <Icon name="branch" size={13} className="status-icon" />
-            <span className="status-branch">
-              {branch?.head || 'Unknown branch'}
-            </span>
-            {branch?.upstream && (
-              <span className="status-upstream">{branch.upstream}</span>
+        {activeRepo
+          ? (
+              <>
+                <Icon name="branch" size={13} className="status-icon" />
+                <span className="status-branch">
+                  {branch?.head || 'Unknown branch'}
+                </span>
+                {branch?.upstream && (
+                  <span className="status-upstream">{branch.upstream}</span>
+                )}
+              </>
+            )
+          : (
+              <span className="status-muted">No repository selected</span>
             )}
-          </>
-        ) : (
-          <span className="status-muted">No repository selected</span>
-        )}
       </div>
       <div className="status-right">
-        {busy ? (
-          <span className="status-busy">
-            <span className="spinner" /> {busyLabel(busy)}
-          </span>
-        ) : activeRepo ? (
-          <>
-            <span className="status-changes">{changeSummary(changes)}</span>
-            <button
-              className="status-author"
-              title="Visit my website"
-              onClick={() => window.api.openExternal('https://sarascafe.lenowo.org')}
-            >
-              Made by SaraPPC
-            </button>
-          </>
-        ) : null}
+        {busy
+          ? (
+              <span className="status-busy">
+                <span className="spinner" />
+                {' '}
+                {busyLabel(busy)}
+              </span>
+            )
+          : activeRepo
+            ? (
+                <>
+                  <span className="status-changes">{changeSummary(changes)}</span>
+                  <button
+                    className="status-author"
+                    title="Visit my website"
+                    onClick={() => window.api.openExternal('https://sarascafe.lenowo.org')}
+                  >
+                    Made by SaraPPC
+                  </button>
+                </>
+              )
+            : null}
       </div>
     </footer>
   )

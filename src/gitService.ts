@@ -1,5 +1,5 @@
+import { type DiffFile, parseDiff } from './diffParser'
 import type { BranchInfo, Commit, FileChange, GitResult, RepoStatus } from './types'
-import { parseDiff, type DiffFile } from './diffParser'
 
 export function git(cwd: string, args: string[]) {
   return window.api.git(cwd, args)
@@ -27,7 +27,7 @@ function parseBranchHeader(header: string): BranchInfo {
     br.gone = true
   }
 
-  let main = rest.split(' [')[0]
+  const main = rest.split(' [')[0]
   if (main.startsWith('No commits yet on ')) {
     br.head = main.slice('No commits yet on '.length)
     br.initial = true
@@ -68,13 +68,13 @@ export function displayStatus(f: FileChange): string {
 
 export function isRepoPath(cwd: string): Promise<boolean> {
   return git(cwd, ['rev-parse', '--is-inside-work-tree']).then(
-    (r) => r.code === 0,
+    r => r.code === 0,
   )
 }
 
 export async function getRepoStatus(cwd: string): Promise<RepoStatus> {
-  const hasCommits =
-    (await git(cwd, ['rev-parse', '--verify', 'HEAD'])).code === 0
+  const hasCommits
+    = (await git(cwd, ['rev-parse', '--verify', 'HEAD'])).code === 0
   const r = await git(cwd, [
     'status',
     '--porcelain=v1',
@@ -86,7 +86,7 @@ export async function getRepoStatus(cwd: string): Promise<RepoStatus> {
     return { branch: null, changes: [], hasCommits }
   }
 
-  const entries = r.stdout.split('\0').filter((s) => s.length > 0)
+  const entries = r.stdout.split('\0').filter(s => s.length > 0)
   let i = 0
   let branch: BranchInfo | null = null
   if (entries[0]?.startsWith('##')) {
@@ -116,13 +116,13 @@ export async function getRepoStatus(cwd: string): Promise<RepoStatus> {
 
 export function getBranches(cwd: string): Promise<string[]> {
   return git(cwd, ['for-each-ref', 'refs/heads', '--format=%(refname:short)']).then(
-    (r) => (r.code === 0 ? r.stdout.split('\n').map((s) => s.trim()).filter(Boolean) : []),
+    r => (r.code === 0 ? r.stdout.split('\n').map(s => s.trim()).filter(Boolean) : []),
   )
 }
 
 export function getRemotes(cwd: string): Promise<string[]> {
-  return git(cwd, ['remote']).then((r) =>
-    r.code === 0 ? r.stdout.split('\n').map((s) => s.trim()).filter(Boolean) : [],
+  return git(cwd, ['remote']).then(r =>
+    r.code === 0 ? r.stdout.split('\n').map(s => s.trim()).filter(Boolean) : [],
   )
 }
 
@@ -155,7 +155,7 @@ export async function getLog(cwd: string, n = 200): Promise<Commit[]> {
   if (r.code !== 0) return []
   return r.stdout
     .split('\x1e')
-    .map((s) => s.trim())
+    .map(s => s.trim())
     .filter(Boolean)
     .map((line) => {
       const parts = line.split('\x1f')
@@ -173,7 +173,7 @@ export async function getLog(cwd: string, n = 200): Promise<Commit[]> {
 
 export function getCommitDiff(cwd: string, sha: string): Promise<DiffFile[]> {
   return git(cwd, ['show', sha, '--no-ext-diff', '--unified=3', '--format=']).then(
-    (r) => parseDiff(r.stdout),
+    r => parseDiff(r.stdout),
   )
 }
 
@@ -203,16 +203,16 @@ export const stageFiles = (cwd: string, paths: string[]) =>
   git(cwd, ['add', '--', ...paths])
 
 export async function stageChanges(cwd: string, changes: FileChange[]) {
-  const tracked = changes.filter((c) => !c.untracked)
-  const untracked = changes.filter((c) => c.untracked)
+  const tracked = changes.filter(c => !c.untracked)
+  const untracked = changes.filter(c => c.untracked)
   const results: GitResult[] = []
   if (tracked.length > 0) {
-    results.push(await git(cwd, ['add', '-u', '--', ...tracked.map((c) => c.path)]))
+    results.push(await git(cwd, ['add', '-u', '--', ...tracked.map(c => c.path)]))
   }
   if (untracked.length > 0) {
-    results.push(await git(cwd, ['add', '--', ...untracked.map((c) => c.path)]))
+    results.push(await git(cwd, ['add', '--', ...untracked.map(c => c.path)]))
   }
-  return results.find((r) => r.code !== 0) || results[0] || { code: 0, stdout: '', stderr: '' }
+  return results.find(r => r.code !== 0) || results[0] || { code: 0, stdout: '', stderr: '' }
 }
 
 export async function unstageFiles(
@@ -270,8 +270,8 @@ export const stashPush = (cwd: string) =>
 export const stashPop = (cwd: string) => git(cwd, ['stash', 'pop'])
 
 export const getStashList = (cwd: string) =>
-  git(cwd, ['stash', 'list']).then((r) =>
-    r.code === 0 ? r.stdout.split('\n').filter((l) => l.trim().length > 0) : [],
+  git(cwd, ['stash', 'list']).then(r =>
+    r.code === 0 ? r.stdout.split('\n').filter(l => l.trim().length > 0) : [],
   )
 
 export function initRepo(folder: string) {

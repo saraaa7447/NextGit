@@ -42,6 +42,7 @@ export function HistorySidebar({
                   <Icon name="branch" size={13} />
                   <span>
                     History of
+                    {' '}
                     {branch}
                   </span>
                 </>

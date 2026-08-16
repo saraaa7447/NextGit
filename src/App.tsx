@@ -9,6 +9,7 @@ import {
   ConfirmModal,
   CreateRepoModal,
   IdentityModal,
+  MergeBranchModal,
   ScanResultsModal,
 } from './components/Modals'
 import { StatusBar } from './components/StatusBar'
@@ -27,6 +28,7 @@ import {
   getRepoStatus,
   getStashList,
   getWorkingDiff,
+  mergeBranch,
   pullBranch,
   pushBranch,
   stageChanges,
@@ -124,6 +126,9 @@ export default function App() {
   const [identityOpen, setIdentityOpen] = useState(false)
   const [settingIdentity, setSettingIdentity] = useState(false)
   const [identityError, setIdentityError] = useState('')
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [merging, setMerging] = useState(false)
+  const [mergeError, setMergeError] = useState('')
 
   const [summary, setSummary] = useState('')
   const [description, setDescription] = useState('')
@@ -633,6 +638,27 @@ export default function App() {
     await loadRepo(activeRepo)
   }
 
+  const openMerge = () => {
+    setMergeError('')
+    setMergeOpen(true)
+  }
+
+  const mergeInto = async (name: string) => {
+    if (!activeRepo) return
+    setMerging(true)
+    setMergeError('')
+    const r = await mergeBranch(activeRepo.path, name)
+    setMerging(false)
+    if (r.code !== 0) {
+      setMergeError(r.stderr.trim() || 'Merge failed')
+      return
+    }
+    setMergeOpen(false)
+    await refreshStatus(activeRepo, { nonce: true })
+    await loadHistory(activeRepo)
+    showToast(`Merged "${name}" into ${branch?.head || 'current branch'}`)
+  }
+
   const doFetch = async () => {
     if (!activeRepo) return
     setBusy('fetch')
@@ -740,6 +766,7 @@ export default function App() {
         onRefresh={manualRefresh}
         onSwitchBranch={switchTo}
         onCreateBranch={newBranch}
+        onMerge={openMerge}
         onFetch={doFetch}
         onSync={doSync}
         theme={theme}
@@ -773,6 +800,7 @@ export default function App() {
               </div>
               <h1>
                 Get started with
+                {' '}
                 {repos.length > 0 ? 'a repository' : 'NextGit'}
               </h1>
               <p>
@@ -952,6 +980,16 @@ export default function App() {
           error={identityError}
           initialName={identity.name === 'you' ? '' : identity.name}
           initialEmail={identity.email.endsWith('@localhost') ? '' : identity.email}
+        />
+      )}
+      {mergeOpen && (
+        <MergeBranchModal
+          branches={branches}
+          current={branch?.head || ''}
+          busy={merging}
+          error={mergeError}
+          onMerge={mergeInto}
+          onClose={() => setMergeOpen(false)}
         />
       )}
       {scanResults && (

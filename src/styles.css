@@ -1043,7 +1043,7 @@ input:disabled {
   border-left: 1px solid var(--bevel-lo);
 }
 .segmented-btn.active {
-  background: var(--surface-shade);
+  background: var(--viewer-bg);
   color: var(--text);
   box-shadow:
     inset 1px 1px 0 var(--bevel-lo2),
@@ -2021,6 +2021,13 @@ input:disabled {
   font-size: 12px;
   color: var(--text-muted);
   margin-right: auto;
+}
+.scan-empty {
+  justify-content: center;
+  padding: 16px 9px;
+  background: var(--viewer-bg);
+  color: var(--text-muted);
+  cursor: default;
 }
 
 /* ------------------------------------------------------------- contextmenu */

@@ -238,6 +238,9 @@ export const switchBranch = (cwd: string, name: string) =>
 export const createBranch = (cwd: string, name: string) =>
   git(cwd, ['switch', '-c', name])
 
+export const mergeBranch = (cwd: string, name: string) =>
+  git(cwd, ['merge', '--no-edit', name])
+
 export const fetchAll = (cwd: string) => git(cwd, ['fetch'])
 
 export async function pullBranch(cwd: string) {

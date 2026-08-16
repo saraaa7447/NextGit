@@ -27,6 +27,7 @@ interface ToolbarProps {
   onRefresh: () => void
   onSwitchBranch: (name: string) => void
   onCreateBranch: (name: string) => void
+  onMerge: () => void
   onFetch: () => void
   onSync: () => void
 }
@@ -165,6 +166,7 @@ export function Toolbar(props: ToolbarProps) {
             current={head}
             onSwitch={props.onSwitchBranch}
             onCreate={props.onCreateBranch}
+            onMerge={props.onMerge}
             busy={busy === 'switch'}
           />
         </Dropdown>
@@ -212,12 +214,14 @@ function BranchList({
   current,
   onSwitch,
   onCreate,
+  onMerge,
   busy,
 }: {
   branches: string[]
   current: string
   onSwitch: (name: string) => void
   onCreate: (name: string) => void
+  onMerge: () => void
   busy: boolean
 }) {
   const [query, setQuery] = useState('')
@@ -307,6 +311,11 @@ function BranchList({
               <span className="menu-item-label">New branch...</span>
             </button>
           )}
+      <div className="menu-sep" />
+      <button className="menu-item" onClick={onMerge} disabled={!current}>
+        <Icon name="merge" size={15} className="menu-item-icon" />
+        <span className="menu-item-label">Merge into current branch...</span>
+      </button>
     </div>
   )
 }

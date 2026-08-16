@@ -241,6 +241,7 @@ function FileRow({
         {file.origPath && file.path !== file.origPath && (
           <span className="file-rename">
             from
+            {' '}
             {file.origPath}
           </span>
         )}

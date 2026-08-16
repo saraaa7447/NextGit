@@ -284,6 +284,85 @@ export function IdentityModal({
   )
 }
 
+export function MergeBranchModal({
+  branches,
+  current,
+  busy,
+  error,
+  onMerge,
+  onClose,
+}: {
+  branches: string[]
+  current: string
+  busy: boolean
+  error: string
+  onMerge: (name: string) => void
+  onClose: () => void
+}) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+
+  const others = branches.filter(b => b !== current)
+  const filtered = others.filter(b => b.toLowerCase().includes(query.toLowerCase()))
+
+  return (
+    <Modal title={`Merge another branch into ${current}`} onClose={onClose} width={480}>
+      <div className="field">
+        <div className="scan-search">
+          <Icon name="search" size={13} />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Branch to merge"
+            autoFocus
+          />
+        </div>
+        <div className="scan-list">
+          {filtered.map(b => (
+            <div
+              key={b}
+              className={`scan-item${selected === b ? ' selected' : ''}`}
+              onClick={() => setSelected(b)}
+            >
+              <span className={`scan-check${selected === b ? ' on' : ''}`}>
+                {selected === b && <Icon name="check" size={11} />}
+              </span>
+              <Icon name="branch" size={14} />
+              <span className="scan-name">{b}</span>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="scan-item scan-empty">
+              No branches available to merge.
+            </div>
+          )}
+        </div>
+      </div>
+      {error && <div className="form-error">{error}</div>}
+      <div className="confirm-actions">
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="primary"
+          disabled={!selected || busy}
+          onClick={() => selected && onMerge(selected)}
+        >
+          {busy
+            ? (
+                <>
+                  <span className="spinner light" />
+                  {' '}
+                  Merging...
+                </>
+              )
+            : (
+                'Merge branch'
+              )}
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
 export function ScanResultsModal({
   repos,
   onAdd,

@@ -3,6 +3,7 @@ import React from 'react'
 export type IconName
   = | 'repo'
     | 'branch'
+    | 'merge'
     | 'sync'
     | 'chevronDown'
     | 'plus'
@@ -45,6 +46,15 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M4 4.75v6.5" />
       <path d="M4 12.3C6 10.8 6.5 7.5 12 7.5" />
       <path d="M12 4.25V6" />
+    </>
+  ),
+  merge: (
+    <>
+      <circle cx="4" cy="3.5" r="1.75" />
+      <circle cx="4" cy="12.5" r="1.75" />
+      <circle cx="12" cy="12.5" r="1.75" />
+      <path d="M4 5.25v5.5" />
+      <path d="M4 12.3C5.5 9.5 9.5 9.5 12 11.5" />
     </>
   ),
   sync: (

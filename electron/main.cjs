@@ -10,6 +10,65 @@ const isDev = !app.isPackaged
 
 let mainWindow = null
 
+const MODAL_CONFIG = {
+  confirm: { width: 460, height: 190, title: 'Confirm' },
+  create: { width: 520, height: 300, title: 'Create a repository' },
+  clone: { width: 560, height: 320, title: 'Clone a repository' },
+  identity: { width: 520, height: 360, title: 'Set your Git identity' },
+  merge: { width: 520, height: 460, title: 'Merge branch' },
+  scan: { width: 560, height: 480, title: 'Scan results' },
+}
+
+const modalWaiters = new Map()
+const modalPayloads = new Map()
+
+function openModalWindow(type) {
+  const cfg = MODAL_CONFIG[type] || { width: 520, height: 360, title: 'NextGit' }
+  const win = new BrowserWindow({
+    width: cfg.width,
+    height: cfg.height,
+    parent: mainWindow || undefined,
+    modal: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    autoHideMenuBar: true,
+    title: cfg.title,
+    icon: path.join(__dirname, '..', 'assets', 'icon.png'),
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  })
+
+  if (isDev && process.env.VITE_DEV_SERVER_URL) {
+    win.loadURL(`${process.env.VITE_DEV_SERVER_URL}?modal=${type}`)
+  } else {
+    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), {
+      query: { modal: type },
+    })
+  }
+
+  win.on('page-title-updated', (event) => {
+    event.preventDefault()
+  })
+
+  win.on('closed', () => {
+    const w = modalWaiters.get(type)
+    if (w) {
+      modalWaiters.delete(type)
+      modalPayloads.delete(type)
+      w.resolve(null)
+    }
+  })
+
+  return win
+}
+
 function cliPath() {
   const args = process.argv.slice(1)
   for (const a of args) {
@@ -93,6 +152,43 @@ function runGit(cwd, args) {
 
 ipcMain.handle('git', async (_evt, cwd, args) => {
   return runGit(cwd, args)
+})
+
+// ---------------------------------------------------------------------------
+// Modal windows
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('modal-open', (event, type, payload) => {
+  if (event.sender !== mainWindow?.webContents) return null
+  if (!MODAL_CONFIG[type]) return null
+  modalPayloads.set(type, payload ?? null)
+  openModalWindow(type)
+  return new Promise((resolve) => {
+    modalWaiters.set(type, { resolve })
+  })
+})
+
+ipcMain.handle('modal-info', (_evt, type) => modalPayloads.get(type) ?? null)
+
+function finishModal(event, type, result) {
+  const w = modalWaiters.get(type)
+  if (w) {
+    modalWaiters.delete(type)
+    modalPayloads.delete(type)
+    w.resolve(result)
+  }
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win && !win.isDestroyed()) win.close()
+}
+
+ipcMain.handle('modal-result', (event, type, result) => {
+  finishModal(event, type, result)
+  return true
+})
+
+ipcMain.handle('modal-cancel', (event, type) => {
+  finishModal(event, type, null)
+  return true
 })
 
 // ---------------------------------------------------------------------------

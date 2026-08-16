@@ -7,6 +7,8 @@ export function Dropdown({
   disabled,
   className,
   alignRight,
+  open: openProp,
+  onOpenChange,
 }: {
   button: React.ReactNode
   children: React.ReactNode
@@ -14,8 +16,15 @@ export function Dropdown({
   disabled?: boolean
   className?: string
   alignRight?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = openProp ?? internalOpen
+  const setOpen = (v: boolean) => {
+    setInternalOpen(v)
+    onOpenChange?.(v)
+  }
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,11 +47,11 @@ export function Dropdown({
     <div className={`dropdown${className ? ' ' + className : ''}`} ref={ref}>
       <div
         className={`dropdown-btn${disabled ? ' disabled' : ''}${open ? ' open' : ''}`}
-        onClick={() => !disabled && setOpen(o => !o)}
+        onClick={() => !disabled && setOpen(!open)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !disabled) setOpen(o => !o)
+          if (e.key === 'Enter' && !disabled) setOpen(!open)
         }}
       >
         {button}

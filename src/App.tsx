@@ -4,14 +4,6 @@ import { ChangesSidebar } from './components/ChangesSidebar'
 import { DiffView } from './components/DiffView'
 import { HistorySidebar } from './components/HistorySidebar'
 import { Icon } from './components/Icons'
-import {
-  CloneRepoModal,
-  ConfirmModal,
-  CreateRepoModal,
-  IdentityModal,
-  MergeBranchModal,
-  ScanResultsModal,
-} from './components/Modals'
 import { StatusBar } from './components/StatusBar'
 import { Toolbar } from './components/Toolbar'
 import type { DiffFile } from './diffParser'
@@ -28,7 +20,6 @@ import {
   getRepoStatus,
   getStashList,
   getWorkingDiff,
-  mergeBranch,
   pullBranch,
   pushBranch,
   stageChanges,
@@ -79,14 +70,6 @@ function isIdentityError(stderr: string): boolean {
   )
 }
 
-interface ConfirmState {
-  title: string
-  message: React.ReactNode
-  confirmLabel: string
-  danger?: boolean
-  action: () => void
-}
-
 export default function App() {
   const [repos, setRepos] = useState<Repo[]>([])
   const [activeRepo, setActiveRepo] = useState<Repo | null>(null)
@@ -115,20 +98,6 @@ export default function App() {
   const [commitLoading, setCommitLoading] = useState(false)
 
   const [initializing, setInitializing] = useState(false)
-  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
-  const [createRepoOpen, setCreateRepoOpen] = useState(false)
-  const [cloneRepoOpen, setCloneRepoOpen] = useState(false)
-  const [cloneError, setCloneError] = useState('')
-  const [scanResults, setScanResults] = useState<Repo[] | null>(null)
-  const [scanBusy, setScanBusy] = useState(false)
-  const [creatingRepo, setCreatingRepo] = useState(false)
-  const [cloning, setCloning] = useState(false)
-  const [identityOpen, setIdentityOpen] = useState(false)
-  const [settingIdentity, setSettingIdentity] = useState(false)
-  const [identityError, setIdentityError] = useState('')
-  const [mergeOpen, setMergeOpen] = useState(false)
-  const [merging, setMerging] = useState(false)
-  const [mergeError, setMergeError] = useState('')
 
   const [summary, setSummary] = useState('')
   const [description, setDescription] = useState('')
@@ -386,78 +355,63 @@ export default function App() {
   const scanFolder = async () => {
     const folder = await window.api.chooseFolder()
     if (!folder) return
-    setScanBusy(true)
     const results = await window.api.scanDirectory(folder)
-    setScanBusy(false)
     const known = new Set(repos.map(r => r.path))
     const fresh = results.filter(r => !known.has(r.path))
-    setScanResults(fresh)
-    if (fresh.length === 0) showToast('No new git repositories found')
-  }
-
-  const addScanned = (selected: Repo[]) => {
+    if (fresh.length === 0) {
+      showToast('No new git repositories found')
+      return
+    }
+    const picked = (await window.api.openModal('scan', { repos: fresh })) as Repo[] | null
+    if (!picked || picked.length === 0) return
     setRepos((prev) => {
-      const known = new Set(prev.map(r => r.path))
-      return [...prev, ...selected.filter(r => !known.has(r.path))]
+      const knownPaths = new Set(prev.map(r => r.path))
+      return [...prev, ...picked.filter(r => !knownPaths.has(r.path))]
     })
-    setScanResults(null)
-    if (selected.length > 0) setActiveRepo(selected[0])
+    setActiveRepo(picked[0])
   }
 
-  const removeRepo = (r: Repo) => {
-    setConfirm({
+  const confirmDialog = (
+    opts: { title: string, message: string, confirmLabel: string, danger?: boolean },
+  ) => window.api.openModal('confirm', opts).then(r => !!r)
+
+  const removeRepo = async (r: Repo) => {
+    const ok = await confirmDialog({
       title: `Remove "${r.name}" from list?`,
-      message: (
-        <>
-          This only removes the repository from the list. Nothing on disk is
-          changed.
-        </>
-      ),
+      message: 'This only removes the repository from the list. Nothing on disk is changed.',
       confirmLabel: 'Remove repository',
       danger: true,
-      action: () => {
-        setRepos(prev => prev.filter(p => p.path !== r.path))
-        if (activeRepo?.path === r.path) {
-          setActiveRepo(null)
-          setBranch(null)
-          setChanges([])
-          setCommits([])
-          setSelectedSha(null)
-          setSelectedPath(null)
-        }
-        setConfirm(null)
-      },
     })
+    if (!ok) return
+    setRepos(prev => prev.filter(p => p.path !== r.path))
+    if (activeRepo?.path === r.path) {
+      setActiveRepo(null)
+      setBranch(null)
+      setChanges([])
+      setCommits([])
+      setSelectedSha(null)
+      setSelectedPath(null)
+    }
   }
 
-  const createRepo = async (name: string, parentPath: string) => {
-    const folder = parentPath.endsWith('/') ? parentPath + name : parentPath + '/' + name
-    setCreatingRepo(true)
-    const res = await window.api.createRepo(folder)
-    setCreatingRepo(false)
-    if (!res.ok) {
-      showToast(res.error || 'Failed to create repository', 'err')
-      return
-    }
-    const repo: Repo = { path: res.path || folder, name }
-    setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
-    setCreateRepoOpen(false)
-    setActiveRepo(repo)
-    showToast(`Repository "${name}" created`)
-  }
-
-  const cloneRepo = async (url: string, dest: string) => {
-    setCloneError('')
-    setCloning(true)
-    const res = await window.api.cloneRepo(url, dest)
-    setCloning(false)
-    if (!res.ok || !res.path) {
-      setCloneError(res.error || 'Clone failed')
-      return
-    }
+  const openCreateRepo = async () => {
+    const res = (await window.api.openModal('create')) as
+      | { ok: boolean, path?: string, name?: string }
+      | null
+    if (!res || !res.ok || !res.path) return
     const repo: Repo = { path: res.path, name: res.name || res.path.split('/').pop() || res.path }
     setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
-    setCloneRepoOpen(false)
+    setActiveRepo(repo)
+    showToast(`Repository "${repo.name}" created`)
+  }
+
+  const openCloneRepo = async () => {
+    const res = (await window.api.openModal('clone')) as
+      | { ok: boolean, path?: string, name?: string }
+      | null
+    if (!res || !res.ok || !res.path) return
+    const repo: Repo = { path: res.path, name: res.name || res.path.split('/').pop() || res.path }
+    setRepos(prev => (prev.some(r => r.path === repo.path) ? prev : [...prev, repo]))
     setActiveRepo(repo)
     showToast(`Repository "${repo.name}" cloned`)
   }
@@ -521,8 +475,7 @@ export default function App() {
     if (r.code !== 0) {
       const msg = r.stderr.split('\n')[0] || 'Commit failed'
       if (isIdentityError(r.stderr)) {
-        setIdentityError('')
-        setIdentityOpen(true)
+        openIdentity()
         return
       }
       showToast(msg, 'err')
@@ -536,62 +489,34 @@ export default function App() {
     showToast('Committed successfully')
   }
 
-  const openIdentity = () => {
-    setIdentityError('')
-    setIdentityOpen(true)
-  }
-
-  const saveIdentity = async (name: string, email: string) => {
-    setSettingIdentity(true)
-    setIdentityError('')
-    const r = await window.api.setIdentity(name, email)
-    setSettingIdentity(false)
-    if (!r.ok) {
-      setIdentityError(r.error || 'Failed to set identity')
-      return
-    }
-    setIdentityOpen(false)
+  const openIdentity = async () => {
+    const res = await window.api.openModal('identity', {
+      initialName: identity.name === 'you' ? '' : identity.name,
+      initialEmail: identity.email.endsWith('@localhost') ? '' : identity.email,
+    })
+    if (!res) return
     if (activeRepo) setIdentity(await getIdentity(activeRepo.path))
     showToast('Git identity saved')
   }
 
-  const requestDiscard = (files: FileChange[]) => {
+  const requestDiscard = async (files: FileChange[]) => {
     const f = files[0]
-    setConfirm({
+    const ok = await confirmDialog({
       title: files.length > 1
         ? `Discard changes to ${files.length} files?`
         : `Discard changes to "${f?.path}"?`,
       message: files.length > 1
-        ? (
-            <>
-              This will permanently discard all uncommitted changes to
-              {' '}
-              {files.length}
-              {' '}
-              files. This cannot be undone.
-            </>
-          )
-        : (
-            <>
-              This will permanently discard
-              {' '}
-              {f?.untracked ? 'this untracked file' : 'all uncommitted changes'}
-              .
-              This cannot be undone.
-            </>
-          ),
+        ? `This will permanently discard all uncommitted changes to ${files.length} files. This cannot be undone.`
+        : `This will permanently discard ${f?.untracked ? 'this untracked file' : 'all uncommitted changes'}. This cannot be undone.`,
       confirmLabel: 'Discard changes',
       danger: true,
-      action: async () => {
-        setConfirm(null)
-        if (!activeRepo) return
-        for (const file of files) {
-          await discardFile(activeRepo.path, file)
-        }
-        await refreshStatus(activeRepo, { nonce: true })
-        showToast(files.length > 1 ? 'Changes discarded' : 'Changes discarded')
-      },
     })
+    if (!ok || !activeRepo) return
+    for (const file of files) {
+      await discardFile(activeRepo.path, file)
+    }
+    await refreshStatus(activeRepo, { nonce: true })
+    showToast('Changes discarded')
   }
 
   const discardByPath = (path: string) => {
@@ -604,36 +529,21 @@ export default function App() {
     }
   }
 
-  const requestUndoCommit = () => {
+  const requestUndoCommit = async () => {
     const last = commits[0]
-    setConfirm({
+    const ok = await confirmDialog({
       title: 'Undo this commit?',
-      message: (
-        <>
-          This will undo the commit
-          <strong>
-            {' '}
-            {last ? `"${last.summary}"` : ''}
-          </strong>
-          {' '}
-          and keep the
-          changes staged in your working directory.
-          {branch?.ahead ? ' The commit has already been pushed.' : ''}
-        </>
-      ),
+      message: `This will undo the commit${last ? ` "${last.summary}"` : ''} and keep the changes staged in your working directory.${branch?.ahead ? ' The commit has already been pushed.' : ''}`,
       confirmLabel: 'Undo commit',
       danger: true,
-      action: async () => {
-        setConfirm(null)
-        if (!activeRepo) return
-        setBusy('undo')
-        await undoCommit(activeRepo.path)
-        setBusy(null)
-        await refreshStatus(activeRepo, { nonce: true })
-        await loadHistory(activeRepo)
-        showToast('Commit undone')
-      },
     })
+    if (!ok || !activeRepo) return
+    setBusy('undo')
+    await undoCommit(activeRepo.path)
+    setBusy(null)
+    await refreshStatus(activeRepo, { nonce: true })
+    await loadHistory(activeRepo)
+    showToast('Commit undone')
   }
 
   const switchTo = async (name: string) => {
@@ -658,25 +568,17 @@ export default function App() {
     await loadRepo(activeRepo)
   }
 
-  const openMerge = () => {
-    setMergeError('')
-    setMergeOpen(true)
-  }
-
-  const mergeInto = async (name: string) => {
+  const openMerge = async () => {
     if (!activeRepo) return
-    setMerging(true)
-    setMergeError('')
-    const r = await mergeBranch(activeRepo.path, name)
-    setMerging(false)
-    if (r.code !== 0) {
-      setMergeError(r.stderr.trim() || 'Merge failed')
-      return
-    }
-    setMergeOpen(false)
+    const res = (await window.api.openModal('merge', {
+      repoPath: activeRepo.path,
+      branches,
+      current: branch?.head || '',
+    })) as { name: string } | null
+    if (!res) return
     await refreshStatus(activeRepo, { nonce: true })
     await loadHistory(activeRepo)
-    showToast(`Merged "${name}" into ${branch?.head || 'current branch'}`)
+    showToast(`Merged "${res.name}" into ${branch?.head || 'current branch'}`)
   }
 
   const doFetch = async () => {
@@ -778,8 +680,8 @@ export default function App() {
         onSelectRepo={selectRepo}
         onRemoveRepo={removeRepo}
         onAddRepo={addRepo}
-        onCreateRepo={() => setCreateRepoOpen(true)}
-        onCloneRepo={() => setCloneRepoOpen(true)}
+        onCreateRepo={openCreateRepo}
+        onCloneRepo={openCloneRepo}
         onScanFolder={scanFolder}
         onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
         onOpenFinder={() => activeRepo && window.api.openFolder(activeRepo.path)}
@@ -842,12 +744,12 @@ export default function App() {
                         Add repository
                       </button>
                     )}
-                <button className="btn btn-default" onClick={() => setCreateRepoOpen(true)}>
+                <button className="btn btn-default" onClick={openCreateRepo}>
                   <Icon name="repo" size={15} />
                   {' '}
                   Create a repository
                 </button>
-                <button className="btn btn-default" onClick={() => setCloneRepoOpen(true)}>
+                <button className="btn btn-default" onClick={openCloneRepo}>
                   <Icon name="download" size={15} />
                   {' '}
                   Clone a repository
@@ -963,62 +865,6 @@ export default function App() {
               )}
           <span>{toast.msg}</span>
         </div>
-      )}
-
-      {confirm && (
-        <ConfirmModal
-          title={confirm.title}
-          message={confirm.message}
-          confirmLabel={confirm.confirmLabel}
-          danger={confirm.danger}
-          onConfirm={confirm.action}
-          onClose={() => setConfirm(null)}
-        />
-      )}
-      {createRepoOpen && (
-        <CreateRepoModal
-          onClose={() => setCreateRepoOpen(false)}
-          onCreate={createRepo}
-          busy={creatingRepo}
-        />
-      )}
-      {cloneRepoOpen && (
-        <CloneRepoModal
-          onClose={() => setCloneRepoOpen(false)}
-          onClone={cloneRepo}
-          busy={cloning}
-          error={cloneError}
-          onErrorClear={() => setCloneError('')}
-        />
-      )}
-      {identityOpen && (
-        <IdentityModal
-          onClose={() => setIdentityOpen(false)}
-          onSet={saveIdentity}
-          onOpenTerminal={() => activeRepo && window.api.openTerminal(activeRepo.path)}
-          busy={settingIdentity}
-          error={identityError}
-          initialName={identity.name === 'you' ? '' : identity.name}
-          initialEmail={identity.email.endsWith('@localhost') ? '' : identity.email}
-        />
-      )}
-      {mergeOpen && (
-        <MergeBranchModal
-          branches={branches}
-          current={branch?.head || ''}
-          busy={merging}
-          error={mergeError}
-          onMerge={mergeInto}
-          onClose={() => setMergeOpen(false)}
-        />
-      )}
-      {scanResults && (
-        <ScanResultsModal
-          repos={scanResults}
-          onAdd={addScanned}
-          onClose={() => setScanResults(null)}
-          busy={scanBusy}
-        />
       )}
     </div>
   )

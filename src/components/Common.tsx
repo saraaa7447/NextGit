@@ -60,17 +60,13 @@ export function Segmented<T extends string>({
 }
 
 export function Modal({
-  title,
   onClose,
   children,
   footer,
-  width = 460,
 }: {
-  title: string
   onClose: () => void
   children: React.ReactNode
   footer?: React.ReactNode
-  width?: number
 }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -81,23 +77,9 @@ export function Modal({
   }, [onClose])
 
   return (
-    <div className="modal-overlay" onMouseDown={onClose}>
-      <div
-        className="modal"
-        style={{ width }}
-        onMouseDown={e => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose} title="Close">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer">{footer}</div>}
-      </div>
+    <div className="modal-window">
+      <div className="modal-body">{children}</div>
+      {footer && <div className="modal-footer">{footer}</div>}
     </div>
   )
 }

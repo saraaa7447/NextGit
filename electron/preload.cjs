@@ -16,4 +16,8 @@ contextBridge.exposeInMainWorld('api', {
   revealFile: filePath => ipcRenderer.invoke('reveal-file', filePath),
   openExternal: url => ipcRenderer.invoke('open-external', url),
   openTerminal: cwd => ipcRenderer.invoke('open-terminal', cwd),
+  openModal: (type, payload) => ipcRenderer.invoke('modal-open', type, payload),
+  getModalInfo: type => ipcRenderer.invoke('modal-info', type),
+  modalResult: (type, result) => ipcRenderer.invoke('modal-result', type, result),
+  modalCancel: type => ipcRenderer.invoke('modal-cancel', type),
 })

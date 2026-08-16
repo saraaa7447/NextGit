@@ -42,6 +42,8 @@ export function Toolbar(props: ToolbarProps) {
     busy,
   } = props
 
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false)
+
   const head = branch?.head || ''
   const upstream = branch?.upstream
   const ahead = branch?.ahead || 0
@@ -152,6 +154,8 @@ export function Toolbar(props: ToolbarProps) {
         <Dropdown
           width={340}
           disabled={!activeRepo}
+          open={branchMenuOpen}
+          onOpenChange={setBranchMenuOpen}
           button={(
             <div className="branch-chip">
               <Icon name="branch" size={15} className="branch-icon" />
@@ -164,7 +168,10 @@ export function Toolbar(props: ToolbarProps) {
           <BranchList
             branches={branches}
             current={head}
-            onSwitch={props.onSwitchBranch}
+            onSwitch={(name) => {
+              props.onSwitchBranch(name)
+              setBranchMenuOpen(false)
+            }}
             onCreate={props.onCreateBranch}
             onMerge={props.onMerge}
             busy={busy === 'switch'}

@@ -41,6 +41,7 @@ export interface RepoStatus {
 
 export type DiffFilter = 'all' | 'staged' | 'unstaged'
 export type Tab = 'changes' | 'history'
+export type ModalType = 'confirm' | 'create' | 'clone' | 'identity' | 'merge' | 'scan'
 
 export interface GitResult {
   code: number
@@ -63,4 +64,8 @@ export interface Api {
   revealFile: (filePath: string) => Promise<boolean>
   openExternal: (url: string) => Promise<boolean>
   openTerminal: (cwd: string) => Promise<boolean>
+  openModal: (type: ModalType, payload?: unknown) => Promise<unknown>
+  getModalInfo: (type: ModalType) => Promise<unknown>
+  modalResult: (type: ModalType, result: unknown) => Promise<boolean>
+  modalCancel: (type: ModalType) => Promise<boolean>
 }

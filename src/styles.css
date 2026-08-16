@@ -425,9 +425,6 @@
 :root[data-flat] .toolbar {
   background: var(--surface-base);
 }
-:root[data-flat] .modal-header {
-  background: var(--titlebar-b);
-}
 :root[data-flat] .btn-primary,
 :root[data-flat] .tab.active,
 :root[data-flat] .file-row.selected,
@@ -1801,49 +1798,27 @@ input:disabled {
 }
 
 /* ------------------------------------------------------------------ modal */
-.modal-overlay {
+.modal-window {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal {
-  background: var(--surface-raised);
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  box-shadow:
-    inset 1px 1px 0 var(--bevel-hi),
-    inset -1px -1px 0 var(--bevel-lo),
-    6px 6px 0 var(--shadow-pop);
-  max-width: 90vw;
-  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: var(--surface-raised);
 }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--edge);
-  background: linear-gradient(180deg, var(--titlebar-a), var(--titlebar-b));
-  box-shadow: inset 0 -1px 0 var(--titlebar-hi);
-}
-.modal-header h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--titlebar-text);
-  letter-spacing: 0.02em;
+.modal-window .modal-body {
+  flex: 1;
+  overflow: auto;
 }
 .modal-body {
   padding: 16px 18px;
   overflow: auto;
   background: var(--surface-raised);
+}
+.dialog-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
 }
 .modal-footer {
   padding: 12px 18px;
@@ -1852,33 +1827,9 @@ input:disabled {
   justify-content: flex-end;
   gap: 8px;
 }
-.icon-btn {
-  border: 1px solid var(--edge);
-  background: linear-gradient(180deg, var(--btn-top), var(--btn-bottom));
-  color: var(--text);
-  box-shadow:
-    inset 1px 1px 0 var(--bevel-hi),
-    inset -1px -1px 0 var(--bevel-lo);
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.icon-btn:hover {
-  color: var(--selection-text);
-  background: var(--selection-bg);
-  box-shadow:
-    inset 1px 1px 0 var(--selection-hi),
-    inset -1px -1px 0 var(--selection-lo);
-}
-.icon-btn:active {
-  box-shadow:
-    inset 1px 1px 0 var(--bevel-lo2),
-    inset -1px -1px 0 var(--bevel-hi);
+.modal-footer .confirm-actions {
+  margin: 0;
+  width: 100%;
 }
 
 .field {

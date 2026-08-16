@@ -4,49 +4,77 @@ import type { Repo } from '../types'
 import { Button, Modal } from './Common'
 import { Icon } from './Icons'
 
-export function ConfirmModal({
-  title,
-  message,
-  confirmLabel,
-  danger,
-  onConfirm,
-  onClose,
-}: {
-  title: string
-  message: React.ReactNode
-  confirmLabel: string
-  danger?: boolean
-  onConfirm: () => void
-  onClose: () => void
-}) {
+export function ConfirmWindow({ info }: { info: unknown }) {
+  const cfg = (info || {}) as {
+    title?: string
+    message?: string
+    confirmLabel?: string
+    danger?: boolean
+  }
+  const close = () => window.api.modalCancel('confirm')
+
   return (
-    <Modal title={title} onClose={onClose} width={440}>
-      <div className="confirm-message">{message}</div>
-      <div className="confirm-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>
-          {confirmLabel}
-        </Button>
-      </div>
+    <Modal
+      onClose={close}
+      footer={(
+        <div className="confirm-actions">
+          <Button onClick={close}>Cancel</Button>
+          <Button
+            variant={cfg.danger ? 'danger' : 'primary'}
+            onClick={() => window.api.modalResult('confirm', true)}
+          >
+            {cfg.confirmLabel || 'Confirm'}
+          </Button>
+        </div>
+      )}
+    >
+      <h2 className="dialog-title">{cfg.title || 'Confirm'}</h2>
+      <div className="confirm-message">{cfg.message}</div>
     </Modal>
   )
 }
 
-export function CreateRepoModal({
-  onClose,
-  onCreate,
-  busy,
-}: {
-  onClose: () => void
-  onCreate: (name: string, parentPath: string) => void
-  busy: boolean
-}) {
+export function CreateRepoWindow() {
   const [name, setName] = useState('')
   const [parent, setParent] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  const close = () => {
+    if (!busy) window.api.modalCancel('create')
+  }
+
+  const create = async () => {
+    if (!name.trim() || !parent || busy) return
+    setBusy(true)
+    setError('')
+    const folder = parent.endsWith('/') ? parent + name : parent + '/' + name
+    const res = await window.api.createRepo(folder)
+    if (!res.ok) {
+      setError(res.error || 'Failed to create repository')
+      setBusy(false)
+      return
+    }
+    window.api.modalResult('create', { ...res, name: name.trim() })
+  }
+
   return (
-    <Modal title="Create a new repository" onClose={onClose} width={480}>
+    <Modal
+      onClose={close}
+      footer={(
+        <div className="confirm-actions">
+          <Button onClick={close}>Cancel</Button>
+          <Button
+            variant="primary"
+            disabled={!name.trim() || !parent || busy}
+            onClick={create}
+          >
+            {busy ? 'Creating...' : 'Create repository'}
+          </Button>
+        </div>
+      )}
+    >
+      <h2 className="dialog-title">Create a new repository</h2>
       <label className="field">
         <span className="field-label">Name</span>
         <input
@@ -79,44 +107,19 @@ export function CreateRepoModal({
         </div>
       </label>
       {error && <div className="form-error">{error}</div>}
-      <div className="confirm-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="primary"
-          disabled={!name.trim() || !parent || busy}
-          onClick={() => {
-            if (!parent) return
-            onCreate(name.trim(), parent)
-          }}
-        >
-          {busy ? 'Creating...' : 'Create repository'}
-        </Button>
-      </div>
     </Modal>
   )
 }
 
-export function CloneRepoModal({
-  onClose,
-  onClone,
-  busy,
-  error: propError,
-  onErrorClear,
-}: {
-  onClose: () => void
-  onClone: (url: string, dest: string) => void
-  busy: boolean
-  error: string
-  onErrorClear: () => void
-}) {
+export function CloneRepoWindow() {
   const [url, setUrl] = useState('')
   const [dest, setDest] = useState('')
   const [destManual, setDestManual] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const clearErrors = () => {
-    setError('')
-    onErrorClear()
+  const close = () => {
+    if (!busy) window.api.modalCancel('clone')
   }
 
   const repoNameFromUrl = (u: string) => {
@@ -141,17 +144,56 @@ export function CloneRepoModal({
     setDest(name ? `${folder}/${name}` : folder)
   }
 
+  const clone = async () => {
+    const u = url.trim()
+    const d = dest.trim()
+    if (!u || !d) {
+      setError('Enter a repository URL and a destination folder.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    const res = await window.api.cloneRepo(u, d)
+    if (!res.ok) {
+      setError(res.error || 'Clone failed')
+      setBusy(false)
+      return
+    }
+    window.api.modalResult('clone', res)
+  }
+
   const canClone = url.trim().length > 0 && dest.trim().length > 0 && !busy
 
   return (
-    <Modal title="Clone a repository" onClose={onClose} width={520}>
+    <Modal
+      onClose={close}
+      footer={(
+        <div className="confirm-actions">
+          <Button onClick={close}>Cancel</Button>
+          <Button variant="primary" disabled={!canClone} onClick={clone}>
+            {busy
+              ? (
+                  <>
+                    <span className="spinner light" />
+                    {' '}
+                    Cloning...
+                  </>
+                )
+              : (
+                  'Clone repository'
+                )}
+          </Button>
+        </div>
+      )}
+    >
+      <h2 className="dialog-title">Clone a repository</h2>
       <label className="field">
         <span className="field-label">Repository URL</span>
         <input
           value={url}
           onChange={(e) => {
             setUrl(e.target.value)
-            clearErrors()
+            setError('')
             suggestDest(e.target.value)
           }}
           placeholder="https://github.com/user/repo.git"
@@ -166,7 +208,7 @@ export function CloneRepoModal({
             onChange={(e) => {
               setDest(e.target.value)
               setDestManual(true)
-              clearErrors()
+              setError('')
             }}
             placeholder="~/Documents/GitHub"
           />
@@ -178,61 +220,52 @@ export function CloneRepoModal({
           &rdquo;.
         </div>
       </label>
-      {(error || propError) && <div className="form-error">{error || propError}</div>}
-      <div className="confirm-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="primary"
-          disabled={!canClone}
-          onClick={() => {
-            const u = url.trim()
-            const d = dest.trim()
-            if (!u || !d) {
-              setError('Enter a repository URL and a destination folder.')
-              return
-            }
-            onClone(u, d)
-          }}
-        >
-          {busy
-            ? (
-                <>
-                  <span className="spinner light" />
-                  {' '}
-                  Cloning...
-                </>
-              )
-            : (
-                'Clone repository'
-              )}
-        </Button>
-      </div>
+      {error && <div className="form-error">{error}</div>}
     </Modal>
   )
 }
 
-export function IdentityModal({
-  onClose,
-  onSet,
-  onOpenTerminal,
-  busy,
-  error,
-  initialName,
-  initialEmail,
-}: {
-  onClose: () => void
-  onSet: (name: string, email: string) => void
-  onOpenTerminal: () => void
-  busy: boolean
-  error: string
-  initialName: string
-  initialEmail: string
-}) {
-  const [name, setName] = useState(initialName)
-  const [email, setEmail] = useState(initialEmail)
+export function IdentityWindow({ info }: { info: unknown }) {
+  const cfg = (info || {}) as { initialName?: string, initialEmail?: string }
+  const [name, setName] = useState(cfg.initialName || '')
+  const [email, setEmail] = useState(cfg.initialEmail || '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const close = () => {
+    if (!busy) window.api.modalCancel('identity')
+  }
+
+  const save = async () => {
+    if (!name.trim() || !email.trim() || busy) return
+    setBusy(true)
+    setError('')
+    const r = await window.api.setIdentity(name.trim(), email.trim())
+    if (!r.ok) {
+      setError(r.error || 'Failed to set identity')
+      setBusy(false)
+      return
+    }
+    window.api.modalResult('identity', { ok: true })
+  }
 
   return (
-    <Modal title="Set your Git identity" onClose={onClose} width={480}>
+    <Modal
+      onClose={close}
+      footer={(
+        <div className="confirm-actions">
+          <Button onClick={close}>Cancel</Button>
+          <Button
+            variant="primary"
+            disabled={!name.trim() || !email.trim() || busy}
+            onClick={save}
+          >
+            {busy ? 'Saving...' : 'Set identity'}
+          </Button>
+        </div>
+      )}
+    >
+      <h2 className="dialog-title">Set your Git identity</h2>
       <p className="confirm-message">
         Git doesn't know who you are, so commits can't be created. Enter a name
         and email address — they will be stored globally in
@@ -259,54 +292,66 @@ export function IdentityModal({
           type="email"
         />
       </label>
-      <p className="field-hint">
-        Prefer the command line? Open a terminal to run
-        {' '}
-        <code>git config --global ...</code>
-        {' '}
-        or
-        <code>gh auth login</code>
-        .
-      </p>
       {error && <div className="form-error">{error}</div>}
-      <div className="confirm-actions">
-        <Button onClick={onOpenTerminal}>Open Terminal</Button>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="primary"
-          disabled={!name.trim() || !email.trim() || busy}
-          onClick={() => onSet(name.trim(), email.trim())}
-        >
-          {busy ? 'Saving...' : 'Set identity'}
-        </Button>
-      </div>
     </Modal>
   )
 }
 
-export function MergeBranchModal({
-  branches,
-  current,
-  busy,
-  error,
-  onMerge,
-  onClose,
-}: {
-  branches: string[]
-  current: string
-  busy: boolean
-  error: string
-  onMerge: (name: string) => void
-  onClose: () => void
-}) {
+export function MergeBranchWindow({ info }: { info: unknown }) {
+  const cfg = (info || {}) as { repoPath?: string, branches?: string[], current?: string }
+  const repoPath = cfg.repoPath || ''
+  const others = (cfg.branches || []).filter(b => b !== cfg.current)
   const [selected, setSelected] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-  const others = branches.filter(b => b !== current)
   const filtered = others.filter(b => b.toLowerCase().includes(query.toLowerCase()))
 
+  const close = () => {
+    if (!busy) window.api.modalCancel('merge')
+  }
+
+  const merge = async () => {
+    if (!selected || !repoPath || busy) return
+    setBusy(true)
+    setError('')
+    const r = await window.api.git(repoPath, ['merge', '--no-edit', selected])
+    if (r.code !== 0) {
+      setError(r.stderr.trim() || 'Merge failed')
+      setBusy(false)
+      return
+    }
+    window.api.modalResult('merge', { name: selected })
+  }
+
   return (
-    <Modal title={`Merge another branch into ${current}`} onClose={onClose} width={480}>
+    <Modal
+      onClose={close}
+      footer={(
+        <div className="confirm-actions">
+          <Button onClick={close}>Cancel</Button>
+          <Button variant="primary" disabled={!selected || busy} onClick={merge}>
+            {busy
+              ? (
+                  <>
+                    <span className="spinner light" />
+                    {' '}
+                    Merging...
+                  </>
+                )
+              : (
+                  'Merge branch'
+                )}
+          </Button>
+        </div>
+      )}
+    >
+      <h2 className="dialog-title">
+        Merge another branch into
+        {' '}
+        {cfg.current || 'current branch'}
+      </h2>
       <div className="field">
         <div className="scan-search">
           <Icon name="search" size={13} />
@@ -339,41 +384,12 @@ export function MergeBranchModal({
         </div>
       </div>
       {error && <div className="form-error">{error}</div>}
-      <div className="confirm-actions">
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="primary"
-          disabled={!selected || busy}
-          onClick={() => selected && onMerge(selected)}
-        >
-          {busy
-            ? (
-                <>
-                  <span className="spinner light" />
-                  {' '}
-                  Merging...
-                </>
-              )
-            : (
-                'Merge branch'
-              )}
-        </Button>
-      </div>
     </Modal>
   )
 }
 
-export function ScanResultsModal({
-  repos,
-  onAdd,
-  onClose,
-  busy,
-}: {
-  repos: Repo[]
-  onAdd: (repos: Repo[]) => void
-  onClose: () => void
-  busy: boolean
-}) {
+export function ScanResultsWindow({ info }: { info: unknown }) {
+  const repos = ((info || {}) as { repos?: Repo[] }).repos || []
   const [selected, setSelected] = useState<Set<string>>(
     new Set(repos.map(r => r.path)),
   )
@@ -392,10 +408,34 @@ export function ScanResultsModal({
 
   return (
     <Modal
-      title={`Found ${repos.length} git repositor${repos.length === 1 ? 'y' : 'ies'}`}
-      onClose={onClose}
-      width={520}
+      onClose={() => window.api.modalCancel('scan')}
+      footer={(
+        <div className="confirm-actions">
+          <span className="scan-count">
+            {selected.size}
+            {' '}
+            selected
+          </span>
+          <Button onClick={() => window.api.modalCancel('scan')}>Cancel</Button>
+          <Button
+            variant="primary"
+            disabled={selected.size === 0}
+            onClick={() =>
+              window.api.modalResult('scan', repos.filter(r => selected.has(r.path)))}
+          >
+            {`Add ${selected.size} repositor${selected.size === 1 ? 'y' : 'ies'}`}
+          </Button>
+        </div>
+      )}
     >
+      <h2 className="dialog-title">
+        Found
+        {' '}
+        {repos.length}
+        {' '}
+        git repositor
+        {repos.length === 1 ? 'y' : 'ies'}
+      </h2>
       <div className="scan-search">
         <Icon name="search" size={13} />
         <input
@@ -419,22 +459,6 @@ export function ScanResultsModal({
             <span className="scan-path">{r.path}</span>
           </div>
         ))}
-      </div>
-      <div className="confirm-actions">
-        <span className="scan-count">
-          {selected.size}
-          {' '}
-          selected
-        </span>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="primary"
-          disabled={selected.size === 0 || busy}
-          onClick={() =>
-            onAdd(repos.filter(r => selected.has(r.path)))}
-        >
-          {busy ? 'Adding...' : `Add ${selected.size} repositor${selected.size === 1 ? 'y' : 'ies'}`}
-        </Button>
       </div>
     </Modal>
   )

@@ -43,6 +43,7 @@ export function Toolbar(props: ToolbarProps) {
   } = props
 
   const [branchMenuOpen, setBranchMenuOpen] = useState(false)
+  const [repoMenuOpen, setRepoMenuOpen] = useState(false)
 
   const head = branch?.head || ''
   const upstream = branch?.upstream
@@ -86,6 +87,8 @@ export function Toolbar(props: ToolbarProps) {
       <div className="toolbar-left">
         <Dropdown
           width={340}
+          open={repoMenuOpen}
+          onOpenChange={setRepoMenuOpen}
           button={(
             <div className="repo-chip">
               <Icon name="repo" size={18} className="repo-icon" />
@@ -103,7 +106,10 @@ export function Toolbar(props: ToolbarProps) {
               <button
                 key={r.path}
                 className={`menu-item repo-item${activeRepo?.path === r.path ? ' active' : ''}`}
-                onClick={() => props.onSelectRepo(r)}
+                onClick={() => {
+                  props.onSelectRepo(r)
+                  setRepoMenuOpen(false)
+                }}
               >
                 <Icon name="repo" size={15} className="menu-item-icon" />
                 <span className="menu-item-label">{r.name}</span>
@@ -113,36 +119,75 @@ export function Toolbar(props: ToolbarProps) {
             ))}
           </div>
           <div className="menu-sep" />
-          <button className="menu-item" onClick={props.onAddRepo}>
+          <button
+            className="menu-item"
+            onClick={() => {
+              props.onAddRepo()
+              setRepoMenuOpen(false)
+            }}
+          >
             <Icon name="folder" size={15} className="menu-item-icon" />
             <span className="menu-item-label">Add existing repository...</span>
           </button>
-          <button className="menu-item" onClick={props.onCreateRepo}>
+          <button
+            className="menu-item"
+            onClick={() => {
+              props.onCreateRepo()
+              setRepoMenuOpen(false)
+            }}
+          >
             <Icon name="plus" size={15} className="menu-item-icon" />
             <span className="menu-item-label">Create new repository...</span>
           </button>
-          <button className="menu-item" onClick={props.onCloneRepo}>
+          <button
+            className="menu-item"
+            onClick={() => {
+              props.onCloneRepo()
+              setRepoMenuOpen(false)
+            }}
+          >
             <Icon name="download" size={15} className="menu-item-icon" />
             <span className="menu-item-label">Clone repository...</span>
           </button>
-          <button className="menu-item" onClick={props.onScanFolder}>
+          <button
+            className="menu-item"
+            onClick={() => {
+              props.onScanFolder()
+              setRepoMenuOpen(false)
+            }}
+          >
             <Icon name="search" size={15} className="menu-item-icon" />
             <span className="menu-item-label">Find repositories in a folder...</span>
           </button>
           {activeRepo && (
             <>
               <div className="menu-sep" />
-              <button className="menu-item" onClick={props.onOpenTerminal}>
+              <button
+                className="menu-item"
+                onClick={() => {
+                  props.onOpenTerminal()
+                  setRepoMenuOpen(false)
+                }}
+              >
                 <Icon name="terminal" size={15} className="menu-item-icon" />
                 <span className="menu-item-label">Open in Terminal</span>
               </button>
-              <button className="menu-item" onClick={props.onOpenFinder}>
+              <button
+                className="menu-item"
+                onClick={() => {
+                  props.onOpenFinder()
+                  setRepoMenuOpen(false)
+                }}
+              >
                 <Icon name="folder" size={15} className="menu-item-icon" />
                 <span className="menu-item-label">Open in File Manager</span>
               </button>
               <button
                 className="menu-item danger"
-                onClick={() => props.onRemoveRepo(activeRepo)}
+                onClick={() => {
+                  props.onRemoveRepo(activeRepo)
+                  setRepoMenuOpen(false)
+                }}
               >
                 <Icon name="trash" size={15} className="menu-item-icon" />
                 <span className="menu-item-label">Remove from list</span>
@@ -262,7 +307,7 @@ function BranchList({
             key={b}
             className={`menu-item branch-item${b === current ? ' active' : ''}`}
             onClick={() => onSwitch(b)}
-            disabled={busy || b === current}
+            disabled={busy}
           >
             <Icon name="branch" size={14} className="menu-item-icon" />
             <span className="menu-item-label">{b}</span>

@@ -14,6 +14,8 @@ document.documentElement.dataset.theme = initial
 if (localStorage.getItem(FLAT_KEY) === '1') {
   document.documentElement.dataset.flat = '1'
 }
+/* For the exposure of platform state into style context */
+document.documentElement.classList.toggle('platform-darwin', window.platform?.isDarwin)
 
 const modalType = new URLSearchParams(window.location.search).get('modal')
 if (modalType) {

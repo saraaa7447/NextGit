@@ -21,3 +21,8 @@ contextBridge.exposeInMainWorld('api', {
   modalResult: (type, result) => ipcRenderer.invoke('modal-result', type, result),
   modalCancel: type => ipcRenderer.invoke('modal-cancel', type),
 })
+
+contextBridge.exposeInMainWorld('platform', {
+  os: process.platform,
+  isDarwin: process.platform === 'darwin'
+})

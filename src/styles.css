@@ -662,6 +662,16 @@ input:disabled {
   flex: none;
 }
 
+html.platform-darwin .toolbar {
+    padding-left: 85px;
+    -webkit-app-region: drag;
+}
+
+/* Forbid drag on elements within toolbar, buttons etc */
+html.platform-darwin .toolbar > * {
+    -webkit-app-region: no-drag;
+}
+
 .toolbar-left,
 .toolbar-right {
   display: flex;

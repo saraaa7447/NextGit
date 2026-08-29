@@ -102,7 +102,11 @@ function createWindow() {
       sandbox: false,
     },
     ...(isDarwin && {
-      titleBarStyle: 'hiddenInset'
+      titleBarStyle: 'hiddenInset',
+      trafficLightPosition: {
+        x: 16,
+        y: 17
+      }
     })
   })
 

@@ -73,4 +73,5 @@ export interface Api {
 export interface Platform {
   os: NodeJS.Platform
   isDarwin: boolean
+  onFullscreen: (handler: (state: boolean) => void) => void
 }

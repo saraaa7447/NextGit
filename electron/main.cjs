@@ -116,6 +116,9 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
 
+  mainWindow.on('enter-full-screen', () => mainWindow.webContents.send('fullscreen', true))
+  mainWindow.on('leave-full-screen', () => mainWindow.webContents.send('fullscreen', false))
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })

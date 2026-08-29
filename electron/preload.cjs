@@ -24,5 +24,6 @@ contextBridge.exposeInMainWorld('api', {
 
 contextBridge.exposeInMainWorld('platform', {
   os: process.platform,
-  isDarwin: process.platform === 'darwin'
+  isDarwin: process.platform === 'darwin',
+  onFullscreen: handler => ipcRenderer.on('fullscreen', (_, val) => handler(val))
 })

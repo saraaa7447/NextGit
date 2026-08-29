@@ -16,6 +16,7 @@ if (localStorage.getItem(FLAT_KEY) === '1') {
 }
 /* For the exposure of platform state into style context */
 document.documentElement.classList.toggle('platform-darwin', window.platform?.isDarwin)
+window.platform?.onFullscreen(state => document.documentElement.classList.toggle('fullscreen', state))
 
 const modalType = new URLSearchParams(window.location.search).get('modal')
 if (modalType) {

@@ -672,6 +672,10 @@ html.platform-darwin .toolbar > * {
     -webkit-app-region: no-drag;
 }
 
+html.fullscreen .toolbar {
+    padding-left: 14px;
+}
+
 .toolbar-left,
 .toolbar-right {
   display: flex;

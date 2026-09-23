@@ -7,6 +7,7 @@ const { execFile, spawn } = require('child_process')
 const os = require('os')
 
 const isDev = !app.isPackaged
+const isDarwin = process.platform === 'darwin'
 
 let mainWindow = null
 
@@ -42,7 +43,7 @@ function openModalWindow(type) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-    },
+    }
   })
 
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
@@ -100,6 +101,13 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
     },
+    ...(isDarwin && {
+      titleBarStyle: 'hiddenInset',
+      trafficLightPosition: {
+        x: 16,
+        y: 17
+      }
+    })
   })
 
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
@@ -107,6 +115,9 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
+
+  mainWindow.on('enter-full-screen', () => mainWindow.webContents.send('fullscreen', true))
+  mainWindow.on('leave-full-screen', () => mainWindow.webContents.send('fullscreen', false))
 
   mainWindow.on('closed', () => {
     mainWindow = null

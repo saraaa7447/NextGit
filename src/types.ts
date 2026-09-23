@@ -69,3 +69,9 @@ export interface Api {
   modalResult: (type: ModalType, result: unknown) => Promise<boolean>
   modalCancel: (type: ModalType) => Promise<boolean>
 }
+
+export interface Platform {
+  os: NodeJS.Platform
+  isDarwin: boolean
+  onFullscreen: (handler: (state: boolean) => void) => void
+}

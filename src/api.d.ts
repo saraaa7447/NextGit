@@ -1,8 +1,9 @@
-import type { Api } from './types'
+import type { Api, Platform } from './types'
 
 declare global {
   interface Window {
     api: Api
+    platform?: Platform
   }
 }
 
